@@ -1,0 +1,389 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum TransferPermission {
+  ENABLED
+  DISABLED
+  REVIEW
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum TransferState {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  BLOCKED
+  EXPIRED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  SECURITY
+}
+
+enum SupportConversationStatus {
+  OPEN
+  RESOLVED
+}
+
+enum SupportSenderRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id String @id @default(cuid())
+
+  email        String @unique
+  passwordHash String
+
+  role   UserRole   @default(USER)
+  status UserStatus @default(ACTIVE)
+
+  customerId String @unique
+
+  onboardingComplete Boolean @default(false)
+  requiresPinSetup   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile          Profile?
+  securitySettings SecuritySettings?
+
+  accounts      Account[]
+  cards         Card[]
+  transactions  Transaction[]
+  transfers     Transfer[]
+  notifications Notification[]
+
+  activityLogs ActivityLog[]
+
+  adminAuditLogs AuditLog[] @relation("AdminAuditLogs")
+
+  supportConversations SupportConversation[] @relation("SupportCustomer")
+  supportMessages      SupportMessage[]      @relation("SupportSender")
+}
+
+model Profile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  firstName  String
+  middleName String?
+  lastName   String
+
+  dateOfBirth DateTime
+  phone       String
+
+  country    String
+  state      String
+  city       String?
+  address    String?
+  postalCode String?
+
+  avatarUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SecuritySettings {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactionPinHash String?
+
+  pinFailedAttempts Int       @default(0)
+  pinLockedUntil    DateTime?
+
+  pinCreatedAt DateTime?
+  pinUpdatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type AccountType
+
+  accountNumber String @unique
+
+  currency String @default("USD")
+
+  balance Decimal @default(0) @db.Decimal(18, 2)
+
+  status AccountStatus @default(ACTIVE)
+
+  transferPermission TransferPermission @default(ENABLED)
+
+  openedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  outgoingTransfers Transfer[] @relation("OutgoingAccount")
+  incomingTransfers Transfer[] @relation("IncomingAccount")
+
+  @@index([userId])
+}
+
+model Transaction {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  reference String @unique
+
+  type   TransactionType
+  status TransactionStatus @default(COMPLETED)
+
+  amount Decimal @db.Decimal(18, 2)
+
+  title       String
+  description String?
+  category    String?
+  memo        String?
+
+  transactionDate DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  statusReason String?
+  adminNote    String?
+
+  completedAt DateTime?
+  failedAt    DateTime?
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([transactionDate])
+}
+
+model Transfer {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  reference String @unique
+
+  fromAccountId String
+  fromAccount   Account @relation("OutgoingAccount", fields: [fromAccountId], references: [id])
+
+  toAccountId String?
+  toAccount   Account? @relation("IncomingAccount", fields: [toAccountId], references: [id])
+
+  recipientName          String?
+  recipientAccountNumber String
+  recipientBankName      String?
+
+  amount   Decimal @db.Decimal(18, 2)
+  currency String  @default("USD")
+
+  memo String?
+
+  status TransferState @default(PENDING)
+
+  failureReason String?
+
+  requiresVerification Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([fromAccountId])
+}
+
+model Card {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String?
+
+  displayName String
+
+  lastFour String
+
+  expiryMonth Int
+  expiryYear  Int
+
+  status CardStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type NotificationType @default(INFO)
+
+  title   String
+  message String
+
+  read Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action String
+
+  description String?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  adminId String
+  admin   User   @relation("AdminAuditLogs", fields: [adminId], references: [id])
+
+  action String
+
+  targetType String
+  targetId   String?
+
+  description String?
+
+  beforeData Json?
+  afterData  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+model SupportConversation {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation("SupportCustomer", fields: [userId], references: [id], onDelete: Cascade)
+
+  subject String?
+
+  status SupportConversationStatus @default(OPEN)
+
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([resolvedAt])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id String @id @default(cuid())
+
+  conversationId String
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation("SupportSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  senderRole SupportSenderRole
+
+  body String
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([readAt])
+  @@index([createdAt])
+}
