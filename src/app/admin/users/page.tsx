@@ -22,7 +22,7 @@ export default async function AdminUsersPage() {
           <div>
             <p className="text-sm font-semibold text-[#66808a]">Administration</p>
             <h1 className="mt-1 text-3xl font-bold text-[#173743]">Users</h1>
-            <p className="mt-2 text-[#66777e]">Manage users and their simulated banking accounts.</p>
+            <p className="mt-2 text-[#66777e]">Manage users and their banking accounts.</p>
           </div>
 
           <div className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#173743]">

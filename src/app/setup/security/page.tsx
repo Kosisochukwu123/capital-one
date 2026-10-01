@@ -27,7 +27,7 @@ export default async function SecuritySetupPage() {
           </h1>
 
           <p className="mt-2 leading-6 text-[#66777e]">
-            Create a 4-digit PIN for confirming simulated
+            Create a 4-digit PIN for confirming
             transactions.
           </p>
         </div>

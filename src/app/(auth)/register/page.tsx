@@ -14,7 +14,7 @@ export default function RegisterPage() {
           </h1>
 
           <p className="mt-2 text-[#66777e]">
-            Enter your information to create your simulated banking profile.
+            Enter your information to create your banking profile.
           </p>
         </div>
 

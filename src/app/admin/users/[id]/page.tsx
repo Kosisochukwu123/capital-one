@@ -357,7 +357,7 @@ export default async function AdminUserPage({
                         </h2>
 
                         <p className="mt-2 text-sm leading-6 text-[#718087]">
-                            Create a simulated credit or
+                            Create a credit or
                             debit. The selected account
                             balance and transaction
                             history will be updated

@@ -172,7 +172,7 @@ export function TransactionPinForm() {
 
       <p className="mt-5 text-sm leading-6 text-[#66777e]">
         Your transaction PIN is separate from your login password
-        and will be required when confirming simulated transactions.
+        and will be required when confirming transactions.
       </p>
 
       {error && (
