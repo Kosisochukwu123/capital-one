@@ -5,7 +5,7 @@ import { LoadingProvider } from "@/components/feedback/loading-provider";
 
 export const metadata: Metadata = {
   title: "Northstar Banking",
-  description: "Educational online banking simulation",
+  description: "Online banking",
 };
 
 export default function RootLayout({

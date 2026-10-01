@@ -14,7 +14,7 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-2 text-[#66777e]">
-            Sign in to your banking simulation account.
+            Sign in to your banking account.
           </p>
         </div>
 

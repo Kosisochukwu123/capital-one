@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { requireAdmin } from "@/server/auth/require-admin";
 import { getAdminDashboardData } from "@/server/queries/get-admin-dashboard-data";
-import { AdminHeader } from "@/components/admin/admin-header";
 
 
 export default async function AdminPage() {
@@ -44,7 +43,7 @@ export default async function AdminPage() {
                     <div className="flex items-center justify-between border-b border-[#e4eaed] px-6 py-5">
                         <div>
                             <h2 className="text-xl font-bold text-[#173743]">Recent users</h2>
-                            <p className="mt-1 text-sm text-[#718087]">Recently created simulation accounts.</p>
+                            <p className="mt-1 text-sm text-[#718087]">Recently created accounts.</p>
                         </div>
 
                         <Link href="/admin/users" className="font-semibold text-[#006b7d]">

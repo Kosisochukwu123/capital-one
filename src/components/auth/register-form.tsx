@@ -200,8 +200,7 @@ export function RegisterForm() {
         />
 
         <span className="text-sm leading-6 text-[#5f7077]">
-          I agree to the terms for this
-          educational banking simulation.
+          I agree to the terms and condition and privacy policy.
         </span>
       </label>
 
