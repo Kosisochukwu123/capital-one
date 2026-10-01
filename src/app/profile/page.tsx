@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { BankingPage } from "@/components/banking/banking-page";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ProfileImageUpload } from "@/components/profile/profile-image-upload";
 
 function formatDate(
   date: Date | null | undefined
@@ -72,6 +73,7 @@ export default async function ProfilePage() {
             city: true,
             address: true,
             postalCode: true,
+            avatarUrl: true,
           },
         },
 
@@ -134,7 +136,7 @@ export default async function ProfilePage() {
       (account) =>
         account.status !== "ACTIVE" ||
         account.transferPermission !==
-          "ENABLED"
+        "ENABLED"
     );
 
   const allTransfersEnabled =
@@ -143,7 +145,7 @@ export default async function ProfilePage() {
       (account) =>
         account.status === "ACTIVE" &&
         account.transferPermission ===
-          "ENABLED"
+        "ENABLED"
     );
 
   const fields = [
@@ -209,9 +211,12 @@ export default async function ProfilePage() {
         {/* Profile heading */}
 
         <section className="bank-card flex items-center gap-4 rounded-[24px] p-5">
-          <div className="flex h-[84px] w-[84px] shrink-0 items-center justify-center rounded-full bg-[#dce9ee] text-[26px] font-bold text-[#003b4d]">
-            {initials}
-          </div>
+          <ProfileImageUpload
+            initialImageUrl={
+              user.profile?.avatarUrl ?? null
+            }
+            initials={initials}
+          />
 
           <div className="min-w-0">
             <h1 className="truncate text-[25px] font-bold text-[#173743]">
@@ -292,9 +297,9 @@ export default async function ProfilePage() {
               (account) => {
                 const available =
                   account.status ===
-                    "ACTIVE" &&
+                  "ACTIVE" &&
                   account.transferPermission ===
-                    "ENABLED";
+                  "ENABLED";
 
                 return (
                   <div
@@ -304,7 +309,7 @@ export default async function ProfilePage() {
                     <div>
                       <p className="font-bold text-[#173743]">
                         {account.type ===
-                        "CHECKING"
+                          "CHECKING"
                           ? "Checking"
                           : "Savings"}
                       </p>
@@ -319,11 +324,10 @@ export default async function ProfilePage() {
 
                     <div className="text-right">
                       <div
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${
-                          available
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${available
                             ? "bg-emerald-50 text-emerald-700"
                             : "bg-amber-50 text-amber-700"
-                        }`}
+                          }`}
                       >
                         {available && (
                           <CheckCircle2
@@ -332,10 +336,10 @@ export default async function ProfilePage() {
                         )}
 
                         {account.status !==
-                        "ACTIVE"
+                          "ACTIVE"
                           ? account.status
                           : account.transferPermission ===
-                              "ENABLED"
+                            "ENABLED"
                             ? "ACTIVE"
                             : "TRANSFERS DISABLED"}
                       </div>
@@ -396,11 +400,10 @@ export default async function ProfilePage() {
             </div>
 
             <span
-              className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-                user.requiresPinSetup
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${user.requiresPinSetup
                   ? "bg-amber-50 text-amber-700"
                   : "bg-emerald-50 text-emerald-700"
-              }`}
+                }`}
             >
               {user.requiresPinSetup
                 ? "SETUP REQUIRED"

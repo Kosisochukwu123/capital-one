@@ -1,53 +1,68 @@
-import { Bell, CheckCheck } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { BankingPage } from "@/components/banking/banking-page";
+import { NotificationCenter } from "@/components/notifications/notification-center";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+
+  const user =
+    await db.user.findUnique({
+      where: {
+        id: session.user.id,
+      },
+
+      select: {
+        id: true,
+        status: true,
+
+        notifications: {
+          orderBy: {
+            createdAt: "desc",
+          },
+
+          take: 50,
+
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            message: true,
+            read: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+  if (
+    !user ||
+    user.status !== "ACTIVE"
+  ) {
+    redirect("/login");
+  }
+
+  const notifications =
+    user.notifications.map(
+      (notification) => ({
+        ...notification,
+
+        createdAt:
+          notification.createdAt.toISOString(),
+      })
+    );
+
   return (
-    <BankingPage title="Help & messages">
-      <div>
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-[30px] font-bold">
-            Notifications
-          </h1>
-
-          <button
-            type="button"
-            className="
-              flex items-center gap-2
-              rounded-full
-              border border-[#d5dfe3]
-              bg-white
-              px-5 py-3
-              font-semibold
-            "
-          >
-            <CheckCheck size={19} />
-            Mark all read
-          </button>
-        </div>
-
-        <section
-          className="
-            bank-card mt-6
-            flex min-h-[250px]
-            flex-col items-center
-            justify-center
-            rounded-[24px]
-            px-5 text-center
-          "
-        >
-          <Bell
-            size={38}
-            strokeWidth={1.6}
-            className="text-[#8b989d]"
-          />
-
-          <p className="mt-5 text-[18px] text-[#52666e]">
-            You&apos;re all caught up.
-          </p>
-        </section>
-      </div>
+    <BankingPage title="Notifications">
+      <NotificationCenter
+        notifications={notifications}
+      />
     </BankingPage>
   );
 }
