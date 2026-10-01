@@ -35,7 +35,7 @@ export function BalanceDetails({
   lastName,
   accounts,
 }: BalanceDetailsProps) {
-  const { showLoader, hideLoader } = useAppLoader();
+  const { navigateWithLoader } = useAppLoader();
 
   const checking = accounts.find(
     (account) => account.type === "CHECKING"
@@ -47,12 +47,12 @@ export function BalanceDetails({
 
   const oldestAccount = accounts[0];
 
-  function openAccount() {
-    showLoader();
+  function openAccount(accountId?: string) {
+    if (!accountId) {
+      return;
+    }
 
-    setTimeout(() => {
-      hideLoader();
-    }, 900);
+    navigateWithLoader(`/accounts/${accountId}`);
   }
 
   return (
@@ -74,35 +74,40 @@ export function BalanceDetails({
 
         <button
           type="button"
-          onClick={openAccount}
-          className="flex w-full items-center justify-between border-t border-[#e1e7ea] px-5 py-5 text-left"
+          onClick={() =>
+            openAccount(checking?.id)
+          }
+          disabled={!checking}
+          className="flex w-full items-center justify-between border-t border-[#e1e7ea] px-5 py-5 text-left transition hover:bg-[#f7fafb] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="text-[#637279]">
             Checking
           </span>
 
           <span className="flex items-center gap-2 font-bold">
-            {formatCurrency(checking?.balance ?? 0)}
+            {formatCurrency(
+              checking?.balance ?? 0
+            )}
             <ChevronRight size={20} />
           </span>
         </button>
 
         <button
           type="button"
-          onClick={openAccount}
-          className="flex w-full items-center justify-between border-t border-[#e1e7ea] px-5 py-5 text-left"
+          onClick={() =>
+            openAccount(savings?.id)
+          }
+          disabled={!savings}
+          className="flex w-full items-center justify-between border-t border-[#e1e7ea] px-5 py-5 text-left transition hover:bg-[#f7fafb] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="text-[#637279]">
             Savings
           </span>
 
-
-
-
-
-
           <span className="flex items-center gap-2 font-bold">
-            {formatCurrency(savings?.balance ?? 0)}
+            {formatCurrency(
+              savings?.balance ?? 0
+            )}
             <ChevronRight size={20} />
           </span>
         </button>
@@ -114,7 +119,9 @@ export function BalanceDetails({
 
           <strong>
             {oldestAccount
-              ? formatOpenedDate(oldestAccount.openedAt)
+              ? formatOpenedDate(
+                  oldestAccount.openedAt
+                )
               : "—"}
           </strong>
         </div>

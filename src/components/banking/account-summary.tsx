@@ -65,9 +65,9 @@ export function AccountSummary({
             {formatCurrency(totalBalance)}
           </h2>
 
-          <p className="mt-2 text-xs text-white/60">
+          {/* <p className="mt-2 text-xs text-white/60">
             Across your available accounts
-          </p>
+          </p> */}
 
           <div className="mt-6 border-t border-white/15 pt-3">
             <p className="text-xs text-white/60">

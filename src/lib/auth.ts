@@ -47,10 +47,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        if (user.status !== "ACTIVE") {
-          return null;
-        }
-
         const passwordMatches = await bcrypt.compare(
           parsed.data.password,
           user.passwordHash
@@ -60,12 +56,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        if (user.status !== "ACTIVE") {
+          return null;
+        }
+
         return {
           id: user.id,
           email: user.email,
-          name: user.profile
-            ? `${user.profile.firstName} ${user.profile.lastName}`
-            : user.email,
+          name: user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email,
           role: user.role,
           requiresPinSetup: user.requiresPinSetup,
         };
