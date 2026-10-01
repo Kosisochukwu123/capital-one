@@ -69,13 +69,11 @@ export function AccountSummary({
             Across your available accounts
           </p>
 
-          <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-white/15">
-            <div className="h-full w-[80%] rounded-full bg-white" />
+          <div className="mt-6 border-t border-white/15 pt-3">
+            <p className="text-xs text-white/60">
+              Available across your active accounts
+            </p>
           </div>
-
-          <p className="mt-2 text-xs text-white/60">
-            Available balance
-          </p>
         </div>
       </div>
 
@@ -143,7 +141,7 @@ function AccountRow({
   const canTransfer =
     account.status === "ACTIVE" &&
     account.transferPermission ===
-      "ENABLED";
+    "ENABLED";
 
   return (
     <div className="overflow-hidden rounded-[20px] border border-[#dfe7ea] bg-white">
@@ -153,7 +151,7 @@ function AccountRow({
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-bold text-[#173743]">
                 {account.type ===
-                "CHECKING"
+                  "CHECKING"
                   ? "Checking"
                   : "Savings"}
               </p>
@@ -274,11 +272,10 @@ function AccountRow({
             </p>
 
             <p
-              className={`mt-1 text-sm font-bold ${
-                isFrozen
+              className={`mt-1 text-sm font-bold ${isFrozen
                   ? "text-blue-700"
                   : "text-emerald-700"
-              }`}
+                }`}
             >
               {account.status}
             </p>

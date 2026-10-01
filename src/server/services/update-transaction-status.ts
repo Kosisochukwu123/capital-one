@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { db } from "@/lib/db";
 
 export type TransactionDecision =
@@ -18,6 +20,16 @@ export type UpdateTransactionStatusResult = {
   reference: string;
   status: TransactionDecision;
 };
+
+function formatAmount(
+  amount: Prisma.Decimal,
+  currency: string
+) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(amount.toNumber());
+}
 
 export async function updateTransactionStatus({
   adminId,
@@ -42,6 +54,11 @@ export async function updateTransactionStatus({
           amount: true,
           statusReason: true,
           adminNote: true,
+          account: {
+            select: {
+              currency: true,
+            },
+          },
         },
       });
 
@@ -51,7 +68,9 @@ export async function updateTransactionStatus({
       );
     }
 
-    if (transaction.status !== "PENDING") {
+    if (
+      transaction.status !== "PENDING"
+    ) {
       throw new Error(
         "TRANSACTION_ALREADY_PROCESSED"
       );
@@ -66,31 +85,49 @@ export async function updateTransactionStatus({
     const transfer =
       await tx.transfer.findUnique({
         where: {
-          reference: transaction.reference,
+          reference:
+            transaction.reference,
         },
         select: {
           id: true,
           status: true,
+          recipientName: true,
         },
       });
 
     if (!transfer) {
-      throw new Error("TRANSFER_NOT_FOUND");
+      throw new Error(
+        "TRANSFER_NOT_FOUND"
+      );
     }
 
-    if (transfer.status !== "PENDING") {
+    if (
+      transfer.status !== "PENDING"
+    ) {
       throw new Error(
         "TRANSFER_ALREADY_PROCESSED"
       );
     }
 
+    const formattedAmount =
+      formatAmount(
+        transaction.amount,
+        transaction.account.currency
+      );
+
+    const recipientName =
+      transfer.recipientName ||
+      "recipient";
+
     const beforeData = {
       transactionStatus:
         transaction.status,
-      transferStatus: transfer.status,
+      transferStatus:
+        transfer.status,
       statusReason:
         transaction.statusReason,
-      adminNote: transaction.adminNote,
+      adminNote:
+        transaction.adminNote,
     };
 
     if (decision === "COMPLETED") {
@@ -103,7 +140,8 @@ export async function updateTransactionStatus({
           statusReason:
             statusReason ||
             "Your transfer has been completed.",
-          adminNote: adminNote || null,
+          adminNote:
+            adminNote || null,
           completedAt: new Date(),
           failedAt: null,
         },
@@ -117,6 +155,18 @@ export async function updateTransactionStatus({
           status: "COMPLETED",
           completedAt: new Date(),
           failureReason: null,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          userId:
+            transaction.userId,
+          type: "SUCCESS",
+          title:
+            "Transfer completed",
+          message: `${formattedAmount} transfer to ${recipientName} has been completed successfully.`,
+          read: false,
         },
       });
     }
@@ -134,44 +184,45 @@ export async function updateTransactionStatus({
         },
       });
 
-      let refundReference =
-        `${transaction.reference}-REFUND`;
+      let refundReference = `${transaction.reference}-REFUND`;
 
       let refundSuffix = 1;
 
       while (
         await tx.transaction.findUnique({
           where: {
-            reference: refundReference,
+            reference:
+              refundReference,
           },
           select: {
             id: true,
           },
         })
       ) {
-        refundReference =
-          `${transaction.reference}-REFUND-${refundSuffix}`;
-
+        refundReference = `${transaction.reference}-REFUND-${refundSuffix}`;
         refundSuffix++;
       }
 
       await tx.transaction.create({
         data: {
-          userId: transaction.userId,
+          userId:
+            transaction.userId,
           accountId:
             transaction.accountId,
-          reference: refundReference,
+          reference:
+            refundReference,
           type: "CREDIT",
           status: "COMPLETED",
-          amount: transaction.amount,
+          amount:
+            transaction.amount,
           title: "Transfer refund",
-          description:
-            `Refund for failed transfer ${transaction.reference}`,
+          description: `Refund for failed transfer ${transaction.reference}`,
           category: "Refund",
           memo: null,
           statusReason:
             "The amount from your failed transfer has been returned to your account.",
-          transactionDate: new Date(),
+          transactionDate:
+            new Date(),
           completedAt: new Date(),
         },
       });
@@ -185,7 +236,8 @@ export async function updateTransactionStatus({
           statusReason:
             statusReason ||
             "Your transfer could not be completed.",
-          adminNote: adminNote || null,
+          adminNote:
+            adminNote || null,
           failedAt: new Date(),
           completedAt: null,
         },
@@ -202,17 +254,31 @@ export async function updateTransactionStatus({
             "Transfer failed.",
         },
       });
+
+      await tx.notification.create({
+        data: {
+          userId:
+            transaction.userId,
+          type: "WARNING",
+          title:
+            "Transfer failed",
+          message: `${formattedAmount} transfer to ${recipientName} could not be completed. The funds have been returned to your account.`,
+          read: false,
+        },
+      });
     }
 
     const afterData = {
-      transactionStatus: decision,
+      transactionStatus:
+        decision,
       transferStatus: decision,
       statusReason:
         statusReason ||
         (decision === "COMPLETED"
           ? "Your transfer has been completed."
           : "Your transfer could not be completed."),
-      adminNote: adminNote || null,
+      adminNote:
+        adminNote || null,
     };
 
     await tx.auditLog.create({
@@ -222,10 +288,11 @@ export async function updateTransactionStatus({
           decision === "COMPLETED"
             ? "TRANSFER_COMPLETED"
             : "TRANSFER_FAILED",
-        targetType: "TRANSACTION",
-        targetId: transaction.id,
-        description:
-          `${transaction.reference} changed from PENDING to ${decision}.`,
+        targetType:
+          "TRANSACTION",
+        targetId:
+          transaction.id,
+        description: `${transaction.reference} changed from PENDING to ${decision}.`,
         beforeData,
         afterData,
       },
@@ -233,8 +300,10 @@ export async function updateTransactionStatus({
 
     return {
       success: true,
-      transactionId: transaction.id,
-      reference: transaction.reference,
+      transactionId:
+        transaction.id,
+      reference:
+        transaction.reference,
       status: decision,
     };
   });

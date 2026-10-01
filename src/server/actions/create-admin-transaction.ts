@@ -58,7 +58,7 @@ export async function createAdminTransactionAction(
     if (result.success) {
       revalidatePath("/");
       revalidatePath("/transactions");
-      revalidatePath("/help");
+     revalidatePath("/notifications");
       revalidatePath("/admin");
       revalidatePath("/admin/users");
       revalidatePath(`/admin/users/${parsed.data.userId}`);

@@ -16,7 +16,7 @@ type ResetUserPinActionResult =
     };
 
 export async function resetUserPinAction(
-  userId: string
+  userId: string,
 ): Promise<ResetUserPinActionResult> {
   const admin = await requireAdmin();
 
@@ -27,21 +27,22 @@ export async function resetUserPinAction(
     });
 
     revalidatePath("/admin/users");
-    revalidatePath(
-      `/admin/users/${userId}`
-    );
+
+    revalidatePath(`/admin/users/${userId}`);
+
+    revalidatePath("/notifications");
+
+    revalidatePath("/");
+
+    revalidatePath("/payments");
 
     return result;
   } catch (error) {
-    console.error(
-      "Reset transaction PIN error:",
-      error
-    );
+    console.error("Reset transaction PIN error:", error);
 
     return {
       success: false,
-      error:
-        "Unable to require a new transaction PIN.",
+      error: "Unable to require a new transaction PIN.",
     };
   }
 }

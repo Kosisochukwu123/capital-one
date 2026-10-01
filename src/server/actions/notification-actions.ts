@@ -56,7 +56,7 @@ export async function markNotificationRead(
       },
     });
 
-    revalidatePath("/help");
+    revalidatePath("/notifications");
 
     return {
       success: true,
@@ -97,7 +97,7 @@ export async function markAllNotificationsRead(): Promise<NotificationActionResu
       },
     });
 
-    revalidatePath("/help");
+   revalidatePath("/notifications");
 
     return {
       success: true,

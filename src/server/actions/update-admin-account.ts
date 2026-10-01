@@ -26,40 +26,34 @@ type UpdateAdminAccountActionResult =
     };
 
 export async function updateAdminAccountAction(
-  values: UpdateAdminAccountValues
+  values: UpdateAdminAccountValues,
 ): Promise<UpdateAdminAccountActionResult> {
   const admin = await requireAdmin();
 
   try {
-    const result =
-      await updateAdminAccount({
-        adminId: admin.id,
-        accountId: values.accountId,
-        status: values.status,
-        transferPermission:
-          values.transferPermission,
-        reason: values.reason?.trim(),
-      });
+    const result = await updateAdminAccount({
+      adminId: admin.id,
+      accountId: values.accountId,
+      status: values.status,
+      transferPermission: values.transferPermission,
+      reason: values.reason?.trim(),
+    });
 
     revalidatePath("/");
+    revalidatePath("/profile");
+    revalidatePath("/notifications");
     revalidatePath("/payments");
     revalidatePath("/admin");
     revalidatePath("/admin/users");
-    revalidatePath(
-      `/admin/users/${values.userId}`
-    );
+    revalidatePath(`/admin/users/${values.userId}`);
 
     return result;
   } catch (error) {
-    console.error(
-      "Admin account update error:",
-      error
-    );
+    console.error("Admin account update error:", error);
 
     return {
       success: false,
-      error:
-        "Unable to update this account.",
+      error: "Unable to update this account.",
     };
   }
 }

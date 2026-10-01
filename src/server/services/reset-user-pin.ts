@@ -70,6 +70,17 @@ export async function resetUserPin({
       },
     });
 
+    await tx.notification.create({
+      data: {
+        userId: user.id,
+        type: "SECURITY",
+        title: "Transaction PIN reset",
+        message:
+          "Your transaction PIN has been reset. Create a new transaction PIN before making another transfer.",
+        read: false,
+      },
+    });
+
     await tx.auditLog.create({
       data: {
         adminId,
