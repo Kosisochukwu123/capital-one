@@ -63,7 +63,9 @@ export default async function HomePage() {
         <RecentTransactions
           transactions={dashboardData.transactions}
         />
-        <AccountDetails />
+        <AccountDetails
+          accounts={dashboardData.accounts}
+        />
       </div>
     </BankingPage>
   );
