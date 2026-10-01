@@ -14,7 +14,7 @@ import {
 } from "@/server/services/create-admin-transaction";
 
 export async function createAdminTransactionAction(
-  values: AdminTransactionInput
+  values: AdminTransactionInput,
 ): Promise<CreateAdminTransactionResult> {
   const session = await auth();
 
@@ -35,58 +35,42 @@ export async function createAdminTransactionAction(
     },
   });
 
-  if (
-    !admin ||
-    admin.role !== "ADMIN" ||
-    admin.status !== "ACTIVE"
-  ) {
+  if (!admin || admin.role !== "ADMIN" || admin.status !== "ACTIVE") {
     return {
       success: false,
-      error:
-        "Administrator access is required.",
+      error: "Administrator access is required.",
     };
   }
 
-  const parsed =
-    adminTransactionSchema.safeParse(values);
+  const parsed = adminTransactionSchema.safeParse(values);
 
   if (!parsed.success) {
     return {
       success: false,
       error:
-        parsed.error.issues[0]?.message ??
-        "Invalid transaction information.",
+        parsed.error.issues[0]?.message ?? "Invalid transaction information.",
     };
   }
 
   try {
-    const result =
-      await createAdminTransaction(
-        session.user.id,
-        parsed.data
-      );
+    const result = await createAdminTransaction(session.user.id, parsed.data);
 
     if (result.success) {
       revalidatePath("/");
       revalidatePath("/transactions");
+      revalidatePath("/help");
       revalidatePath("/admin");
       revalidatePath("/admin/users");
-      revalidatePath(
-        `/admin/users/${parsed.data.userId}`
-      );
+      revalidatePath(`/admin/users/${parsed.data.userId}`);
     }
 
     return result;
   } catch (error) {
-    console.error(
-      "Admin transaction creation error:",
-      error
-    );
+    console.error("Admin transaction creation error:", error);
 
     return {
       success: false,
-      error:
-        "Unable to create transaction.",
+      error: "Unable to create transaction.",
     };
   }
 }

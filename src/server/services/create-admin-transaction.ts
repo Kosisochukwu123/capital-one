@@ -19,11 +19,27 @@ export type CreateAdminTransactionResult =
       error: string;
     };
 
+function formatCurrency(
+  amount: number,
+  currency: string
+) {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
 export async function createAdminTransaction(
   adminId: string,
   input: AdminTransactionInput
 ): Promise<CreateAdminTransactionResult> {
-  const parsed = adminTransactionSchema.safeParse(input);
+  const parsed =
+    adminTransactionSchema.safeParse(input);
 
   if (!parsed.success) {
     return {
@@ -41,9 +57,11 @@ export async function createAdminTransaction(
       id: data.accountId,
       userId: data.userId,
     },
+
     select: {
       id: true,
       userId: true,
+      type: true,
       balance: true,
       currency: true,
       status: true,
@@ -60,11 +78,14 @@ export async function createAdminTransaction(
   if (account.status !== "ACTIVE") {
     return {
       success: false,
-      error: "Transactions cannot be added to this account.",
+      error:
+        "Transactions cannot be added to this account.",
     };
   }
 
-  const amount = new Prisma.Decimal(data.amount);
+  const amount = new Prisma.Decimal(
+    data.amount
+  );
 
   if (
     data.type === "DEBIT" &&
@@ -77,26 +98,33 @@ export async function createAdminTransaction(
     };
   }
 
-  let reference = generateTransactionReference();
+  let reference =
+    generateTransactionReference();
 
   while (
     await db.transaction.findUnique({
       where: {
         reference,
       },
+
       select: {
         id: true,
       },
     })
   ) {
-    reference = generateTransactionReference();
+    reference =
+      generateTransactionReference();
   }
 
   const transactionDate = new Date(
     data.transactionDate
   );
 
-  if (Number.isNaN(transactionDate.getTime())) {
+  if (
+    Number.isNaN(
+      transactionDate.getTime()
+    )
+  ) {
     return {
       success: false,
       error: "Invalid transaction date.",
@@ -130,6 +158,7 @@ export async function createAdminTransaction(
           where: {
             id: account.id,
           },
+
           data: {
             balance:
               data.type === "CREDIT"
@@ -140,19 +169,59 @@ export async function createAdminTransaction(
                     decrement: amount,
                   },
           },
+
           select: {
             balance: true,
           },
         });
 
+      const formattedAmount =
+        formatCurrency(
+          Number(data.amount),
+          account.currency
+        );
+
+      const accountName =
+        account.type === "CHECKING"
+          ? "Checking"
+          : "Savings";
+
+      await tx.notification.create({
+        data: {
+          userId: data.userId,
+
+          type:
+            data.type === "CREDIT"
+              ? "SUCCESS"
+              : "INFO",
+
+          title:
+            data.type === "CREDIT"
+              ? "Account credited"
+              : "Account debited",
+
+          message:
+            data.type === "CREDIT"
+              ? `Your ${accountName} account has been credited with ${formattedAmount}.`
+              : `${formattedAmount} has been debited from your ${accountName} account.`,
+
+          read: false,
+        },
+      });
+
       await tx.auditLog.create({
         data: {
           adminId,
+
           action:
             "ADMIN_TRANSACTION_CREATED",
+
           targetType: "TRANSACTION",
+
           targetId: transaction.id,
+
           description: `${data.type} transaction ${reference} created by administrator.`,
+
           afterData: {
             transactionId:
               transaction.id,
@@ -171,8 +240,10 @@ export async function createAdminTransaction(
       return {
         transactionId:
           transaction.id,
+
         reference:
           transaction.reference,
+
         balance:
           updatedAccount.balance.toNumber(),
       };
