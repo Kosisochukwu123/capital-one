@@ -4,19 +4,22 @@ import {
     BriefcaseBusiness,
     CheckCircle2,
     Loader2,
+    Plus,
     UserCheck,
+    UserPlus,
     Users,
     UserX,
+    X,
 } from "lucide-react";
 import {
     useMemo,
     useState,
     useTransition,
 } from "react";
-
 import { useRouter } from "next/navigation";
 
 import { assignAccountManager } from "@/server/actions/assign-account-manager";
+import { promoteAccountManager } from "@/server/actions/promote-account-manager";
 
 type Manager = {
     id: string;
@@ -49,9 +52,20 @@ type Customer = {
     }[];
 };
 
+type EligibleUser = {
+    id: string;
+    email: string;
+    customerId: string;
+    profile: {
+        firstName: string;
+        lastName: string;
+    } | null;
+};
+
 interface AccountManagersDashboardProps {
     managers: Manager[];
     unassignedCustomers: Customer[];
+    eligibleUsers: EligibleUser[];
 
     stats: {
         managers: number;
@@ -78,24 +92,21 @@ function getName(
 export function AccountManagersDashboard({
     managers,
     unassignedCustomers,
+    eligibleUsers,
     stats,
 }: AccountManagersDashboardProps) {
-    const [pendingCustomerId, setPendingCustomerId] =
-        useState<string | null>(null);
-
-    const [selectedManagers, setSelectedManagers] =
-        useState<Record<string, string>>({});
-
-    const [message, setMessage] =
-        useState<string | null>(null);
-
-    const [error, setError] =
-        useState<string | null>(null);
-
-    const [isPending, startTransition] =
-        useTransition();
-
     const router = useRouter();
+
+    const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
+    const [selectedManagers, setSelectedManagers] = useState<Record<string, string>>({});
+    const [message, setMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const [showPromotion, setShowPromotion] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState("");
+    const [promoting, setPromoting] = useState(false);
+
+    const [isPending, startTransition] = useTransition();
 
     const activeManagers = useMemo(
         () =>
@@ -134,7 +145,7 @@ export function AccountManagersDashboard({
             if (!result.success) {
                 setError(
                     result.error ??
-                    "Unable to assign account manager."
+                        "Unable to assign account manager."
                 );
                 setPendingCustomerId(null);
                 return;
@@ -145,21 +156,76 @@ export function AccountManagersDashboard({
             );
 
             setPendingCustomerId(null);
+            router.refresh();
+        });
+    }
+
+    function handlePromotion() {
+        if (!selectedUserId) {
+            setError(
+                "Select a user to promote."
+            );
+            setMessage(null);
+            return;
+        }
+
+        setError(null);
+        setMessage(null);
+        setPromoting(true);
+
+        startTransition(async () => {
+            const result =
+                await promoteAccountManager(
+                    selectedUserId
+                );
+
+            if (!result.success) {
+                setError(
+                    result.error ??
+                        "Unable to promote user."
+                );
+                setPromoting(false);
+                return;
+            }
+
+            setSelectedUserId("");
+            setShowPromotion(false);
+            setPromoting(false);
+
+            setMessage(
+                "User promoted to account manager successfully."
+            );
+
+            router.refresh();
         });
     }
 
     return (
         <div className="space-y-8">
             <section>
-                <div className="mb-5">
-                    <h1 className="text-2xl font-bold text-slate-950">
-                        Account Managers
-                    </h1>
+                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-950">
+                            Account Managers
+                        </h1>
 
-                    <p className="mt-1 text-sm text-slate-500">
-                        Manage customer assignments and
-                        account-manager workloads.
-                    </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Manage account managers, customer assignments and workloads.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowPromotion(true);
+                            setError(null);
+                            setMessage(null);
+                        }}
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Add account manager
+                    </button>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -171,25 +237,19 @@ export function AccountManagersDashboard({
 
                     <StatCard
                         title="Assigned customers"
-                        value={
-                            stats.assignedCustomers
-                        }
+                        value={stats.assignedCustomers}
                         icon={UserCheck}
                     />
 
                     <StatCard
                         title="Unassigned customers"
-                        value={
-                            stats.unassignedCustomers
-                        }
+                        value={stats.unassignedCustomers}
                         icon={UserX}
                     />
 
                     <StatCard
                         title="Total customers"
-                        value={
-                            stats.totalCustomers
-                        }
+                        value={stats.totalCustomers}
                         icon={Users}
                     />
                 </div>
@@ -198,7 +258,6 @@ export function AccountManagersDashboard({
             {message && (
                 <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-
                     <span>{message}</span>
                 </div>
             )}
@@ -216,91 +275,72 @@ export function AccountManagersDashboard({
                     </h2>
 
                     <p className="mt-1 text-sm text-slate-500">
-                        Current administrators who can be
-                        assigned customer accounts.
+                        Administrators who can manage assigned customers.
                     </p>
                 </div>
 
                 {managers.length === 0 ? (
                     <div className="px-6 py-12 text-center text-sm text-slate-500">
-                        No account managers have been
-                        created yet.
+                        No account managers have been created yet.
                     </div>
                 ) : (
                     <div className="divide-y divide-slate-100">
-                        {managers.map(
-                            (manager) => {
-                                const name =
-                                    getName(
-                                        manager.profile,
-                                        manager.email
-                                    );
+                        {managers.map((manager) => {
+                            const name =
+                                getName(
+                                    manager.profile,
+                                    manager.email
+                                );
 
-                                return (
-                                    <div
-                                        key={
-                                            manager.id
-                                        }
-                                        className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                                    >
-                                        <div className="min-w-0">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <p className="font-semibold text-slate-950">
-                                                    {
-                                                        name
-                                                    }
-                                                </p>
+                            return (
+                                <div
+                                    key={manager.id}
+                                    className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                                >
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <p className="font-semibold text-slate-950">
+                                                {name}
+                                            </p>
 
-                                                <span
-                                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${manager.status ===
-                                                        "ACTIVE"
-                                                        ? "bg-emerald-50 text-emerald-700"
-                                                        : "bg-slate-100 text-slate-600"
-                                                        }`}
-                                                >
-                                                    {
-                                                        manager.status
-                                                    }
-                                                </span>
-                                            </div>
+                                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${manager.status === "ACTIVE" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                                                {manager.status}
+                                            </span>
+                                        </div>
 
-                                            <p className="mt-1 truncate text-sm text-slate-500">
-                                                {
-                                                    manager.email
-                                                }
+                                        <p className="mt-1 truncate text-sm text-slate-500">
+                                            {manager.email}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-2xl bg-slate-50 px-4 py-3 sm:text-right">
+                                            <p className="text-xl font-bold text-slate-950">
+                                                {manager._count.managedCustomers}
+                                            </p>
+
+                                            <p className="text-xs text-slate-500">
+                                                {manager._count.managedCustomers === 1
+                                                    ? "customer"
+                                                    : "customers"}
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
-                                            <div className="rounded-2xl bg-slate-50 px-4 py-3 sm:text-right">
-                                                <p className="text-xl font-bold text-slate-950">
-                                                    {manager._count.managedCustomers}
-                                                </p>
-
-                                                <p className="text-xs text-slate-500">
-                                                    {manager._count.managedCustomers === 1
-                                                        ? "customer"
-                                                        : "customers"}
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    router.push(
-                                                        `/admin/account-managers/${manager.id}`
-                                                    )
-                                                }
-                                                className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                                            >
-                                                View customers
-                                            </button>
-                                        </div>
-
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.push(
+                                                    `/admin/account-managers/${manager.id}`
+                                                )
+                                            }
+                                            className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            View customers
+                                        </button>
                                     </div>
-                                );
-                            }
-                        )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </section>
@@ -312,13 +352,11 @@ export function AccountManagersDashboard({
                     </h2>
 
                     <p className="mt-1 text-sm text-slate-500">
-                        Assign these customers to an
-                        active account manager.
+                        Assign these customers to an active account manager.
                     </p>
                 </div>
 
-                {unassignedCustomers.length ===
-                    0 ? (
+                {unassignedCustomers.length === 0 ? (
                     <div className="px-6 py-12 text-center">
                         <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
 
@@ -327,8 +365,7 @@ export function AccountManagersDashboard({
                         </p>
 
                         <p className="mt-1 text-sm text-slate-500">
-                            There are currently no
-                            unassigned customers.
+                            There are currently no unassigned customers.
                         </p>
                     </div>
                 ) : (
@@ -343,13 +380,13 @@ export function AccountManagersDashboard({
 
                                 const selectedManager =
                                     selectedManagers[
-                                    customer.id
+                                        customer.id
                                     ] ?? "";
 
                                 const assigning =
                                     isPending &&
                                     pendingCustomerId ===
-                                    customer.id;
+                                        customer.id;
 
                                 return (
                                     <div
@@ -373,8 +410,7 @@ export function AccountManagersDashboard({
                                                 </p>
 
                                                 <p className="mt-1 text-xs text-slate-400">
-                                                    Customer
-                                                    ID:{" "}
+                                                    Customer ID:{" "}
                                                     {
                                                         customer.customerId
                                                     }
@@ -411,8 +447,7 @@ export function AccountManagersDashboard({
                                                     className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400"
                                                 >
                                                     <option value="">
-                                                        Select
-                                                        manager
+                                                        Select manager
                                                     </option>
 
                                                     {activeManagers.map(
@@ -467,6 +502,140 @@ export function AccountManagersDashboard({
                     </div>
                 )}
             </section>
+
+            {showPromotion && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 px-4">
+                    <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                                    <UserPlus className="h-5 w-5" />
+                                </div>
+
+                                <h2 className="mt-4 text-xl font-bold text-slate-950">
+                                    Add account manager
+                                </h2>
+
+                                <p className="mt-2 text-sm leading-6 text-slate-500">
+                                    Select an active customer to promote to an account manager.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled={promoting}
+                                onClick={() =>
+                                    setShowPromotion(
+                                        false
+                                    )
+                                }
+                                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="mt-6">
+                            <label
+                                htmlFor="manager-user"
+                                className="text-sm font-semibold text-slate-700"
+                            >
+                                User
+                            </label>
+
+                            <select
+                                id="manager-user"
+                                value={selectedUserId}
+                                disabled={promoting}
+                                onChange={(event) => {
+                                    setSelectedUserId(
+                                        event.target
+                                            .value
+                                    );
+                                    setError(null);
+                                }}
+                                className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+                            >
+                                <option value="">
+                                    Select a user
+                                </option>
+
+                                {eligibleUsers.map(
+                                    (user) => (
+                                        <option
+                                            key={
+                                                user.id
+                                            }
+                                            value={
+                                                user.id
+                                            }
+                                        >
+                                            {getName(
+                                                user.profile,
+                                                user.email
+                                            )}{" "}
+                                            —{" "}
+                                            {
+                                                user.email
+                                            }
+                                        </option>
+                                    )
+                                )}
+                            </select>
+
+                            {eligibleUsers.length ===
+                                0 && (
+                                <p className="mt-3 text-sm text-slate-500">
+                                    There are no eligible active users available for promotion.
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                            Promoting this user gives them access to the administration area as an account manager. They will only be able to manage customers assigned to them.
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                disabled={promoting}
+                                onClick={() =>
+                                    setShowPromotion(
+                                        false
+                                    )
+                                }
+                                className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={
+                                    promoting ||
+                                    !selectedUserId
+                                }
+                                onClick={
+                                    handlePromotion
+                                }
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {promoting ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Promoting
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="h-4 w-4" />
+                                        Promote
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -4,89 +4,118 @@ import { requireSuperAdmin } from "@/server/auth/require-super-admin";
 export async function getAccountManagerDashboard() {
     await requireSuperAdmin();
 
-    const [managers, unassignedCustomers, totalCustomers] =
-        await Promise.all([
-            db.user.findMany({
-                where: {
-                    role: "ADMIN",
+    const [
+        managers,
+        unassignedCustomers,
+        eligibleUsers,
+        totalCustomers,
+    ] = await Promise.all([
+        db.user.findMany({
+            where: {
+                role: "ADMIN",
+            },
+
+            orderBy: [
+                {
+                    status: "asc",
                 },
-
-                orderBy: [
-                    {
-                        status: "asc",
-                    },
-                    {
-                        createdAt: "desc",
-                    },
-                ],
-
-                select: {
-                    id: true,
-                    email: true,
-                    status: true,
-                    createdAt: true,
-
-                    profile: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
-                        },
-                    },
-
-                    _count: {
-                        select: {
-                            managedCustomers: true,
-                        },
-                    },
-                },
-            }),
-
-            db.user.findMany({
-                where: {
-                    role: "USER",
-                    accountManagerId: null,
-                },
-
-                orderBy: {
+                {
                     createdAt: "desc",
                 },
+            ],
 
-                select: {
-                    id: true,
-                    email: true,
-                    customerId: true,
-                    status: true,
-                    createdAt: true,
+            select: {
+                id: true,
+                email: true,
+                status: true,
+                createdAt: true,
 
-                    profile: {
-                        select: {
-                            firstName: true,
-                            lastName: true,
+                profile: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+
+                _count: {
+                    select: {
+                        managedCustomers: true,
+                    },
+                },
+            },
+        }),
+
+        db.user.findMany({
+            where: {
+                role: "USER",
+                accountManagerId: null,
+            },
+
+            orderBy: {
+                createdAt: "desc",
+            },
+
+            select: {
+                id: true,
+                email: true,
+                customerId: true,
+                status: true,
+                createdAt: true,
+
+                profile: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+
+                accounts: {
+                    where: {
+                        status: {
+                            not: "CLOSED",
                         },
                     },
 
-                    accounts: {
-                        where: {
-                            status: {
-                                not: "CLOSED",
-                            },
-                        },
-
-                        select: {
-                            id: true,
-                            type: true,
-                            accountNumber: true,
-                        },
+                    select: {
+                        id: true,
+                        type: true,
+                        accountNumber: true,
                     },
                 },
-            }),
+            },
+        }),
 
-            db.user.count({
-                where: {
-                    role: "USER",
+        db.user.findMany({
+            where: {
+                role: "USER",
+                status: "ACTIVE",
+                accountManagerId: null,
+            },
+
+            orderBy: {
+                createdAt: "desc",
+            },
+
+            select: {
+                id: true,
+                email: true,
+                customerId: true,
+
+                profile: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                    },
                 },
-            }),
-        ]);
+            },
+        }),
+
+        db.user.count({
+            where: {
+                role: "USER",
+            },
+        }),
+    ]);
 
     const assignedCustomers =
         totalCustomers -
@@ -95,6 +124,7 @@ export async function getAccountManagerDashboard() {
     return {
         managers,
         unassignedCustomers,
+        eligibleUsers,
 
         stats: {
             managers: managers.length,
