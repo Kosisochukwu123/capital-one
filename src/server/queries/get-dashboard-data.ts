@@ -14,6 +14,7 @@ export async function getDashboardData(userId: string) {
           firstName: true,
           middleName: true,
           lastName: true,
+          avatarUrl: true,
         },
       },
 
@@ -69,6 +70,7 @@ export async function getDashboardData(userId: string) {
     firstName: user.profile?.firstName ?? "Customer",
     middleName: user.profile?.middleName ?? null,
     lastName: user.profile?.lastName ?? "",
+    avatarUrl: user.profile?.avatarUrl ?? null,
 
     accounts: user.accounts.map((account) => ({
       id: account.id,

@@ -32,13 +32,13 @@ export default async function HomePage() {
   if (!user || user.status !== "ACTIVE") {
     redirect("/login");
   }
-  
-if (
-  user.role === "ADMIN" ||
-  user.role === "SUPER_ADMIN"
-) {
-  redirect("/admin");
-}
+
+  if (
+    user.role === "ADMIN" ||
+    user.role === "SUPER_ADMIN"
+  ) {
+    redirect("/admin");
+  }
 
   if (user.requiresPinSetup) {
     redirect("/setup/security");
@@ -56,6 +56,9 @@ if (
     <BankingPage title="At a glance">
       <div className="space-y-5">
         <AccountSummary
+          firstName={dashboardData.firstName}
+          lastName={dashboardData.lastName}
+          avatarUrl={dashboardData.avatarUrl}
           accounts={dashboardData.accounts}
         />
         <BalanceDetails

@@ -3,7 +3,10 @@
 import {
   AlertTriangle,
   ArrowUpRight,
+  ChevronRight,
   LockKeyhole,
+  PiggyBank,
+  WalletCards,
 } from "lucide-react";
 
 import { useAppLoader } from "@/components/feedback/loading-provider";
@@ -21,279 +24,253 @@ type DashboardAccount = {
 };
 
 interface AccountSummaryProps {
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
   accounts: DashboardAccount[];
 }
 
 export function AccountSummary({
+  firstName,
+  lastName,
+  avatarUrl,
   accounts,
 }: AccountSummaryProps) {
-  const { navigateWithLoader } =
-    useAppLoader();
+  const { navigateWithLoader } = useAppLoader();
 
-  const checkingAccount =
-    accounts.find(
-      (account) =>
-        account.type === "CHECKING"
-    );
+  const totalBalance = accounts.reduce(
+    (total, account) => total + account.balance,
+    0
+  );
 
-  const savingsAccount =
-    accounts.find(
-      (account) =>
-        account.type === "SAVINGS"
-    );
-
-  const totalBalance =
-    accounts.reduce(
-      (total, account) =>
-        total + account.balance,
-      0
-    );
+  const initials =
+    `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   return (
-    <section className="overflow-hidden rounded-[26px] bg-[#003b4d] text-white shadow-sm">
-      <div className="relative overflow-hidden px-5 pb-6 pt-6 sm:px-7">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full border-[34px] border-white/5" />
+    <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#005f78] via-[#004b61] to-[#003545] text-white shadow-sm">
+      <div className="pointer-events-none absolute -right-20 -top-32 h-[330px] w-[330px] rounded-full bg-white/[0.05]" />
+      <div className="pointer-events-none absolute -right-24 top-10 h-[280px] w-[420px] rotate-[-18deg] rounded-[50%] border-[48px] border-white/[0.04]" />
+      <div className="pointer-events-none absolute -bottom-32 -left-20 h-[300px] w-[300px] rounded-full border-[45px] border-white/[0.04]" />
 
-        <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rounded-full border-[40px] border-white/5" />
+      <div className="relative px-5 pb-6 pt-6 sm:px-7 sm:pb-7 sm:pt-7">
+        <div className="flex items-center gap-3">
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/15 shadow-sm">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={`${firstName} ${lastName}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                {initials || "CU"}
+              </div>
+            )}
+          </div>
 
-        <div className="relative">
-          <p className="text-sm font-medium text-white/70">
+          <div className="min-w-0">
+            <p className="text-[15px] text-white/70">
+              Hello,
+            </p>
+
+            <h1 className="truncate text-xl font-bold tracking-tight">
+              {firstName}!
+            </h1>
+          </div>
+        </div>
+
+        <div className="mt-7">
+          <p className="text-sm font-medium text-white/65">
             Total balance
           </p>
 
-          <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="mt-1 text-[36px] font-bold leading-none tracking-[-0.04em] sm:text-[42px]">
             {formatCurrency(totalBalance)}
           </h2>
+        </div>
 
-          {/* <p className="mt-2 text-xs text-white/60">
-            Across your available accounts
-          </p> */}
+        <div className="mt-8 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-lg font-bold">
+              Your accounts
+            </p>
 
-          <div className="mt-6 border-t border-white/15 pt-3">
-            <p className="text-xs text-white/60">
-              Available across your active accounts
+            <p className="mt-0.5 text-xs text-white/55">
+              {accounts.length === 1
+                ? "1 active account"
+                : `${accounts.length} active accounts`}
             </p>
           </div>
         </div>
-      </div>
 
-      <div className="relative bg-white p-4 text-[#173743] sm:p-5">
-        <div className="space-y-3">
-          {checkingAccount && (
-            <AccountRow
-              account={checkingAccount}
-              onOpen={() =>
-                navigateWithLoader(
-                  `/payments`
-                )
-              }
-            />
-          )}
+        {accounts.length > 0 ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {accounts.map((account) => (
+              <AccountCard
+                key={account.id}
+                account={account}
+                onOpen={() =>
+                  navigateWithLoader(
+                    `/accounts/${account.id}`
+                  )
+                }
+                onTransfer={() =>
+                  navigateWithLoader("/payments")
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-[22px] border border-white/15 bg-white/10 px-5 py-8 text-center backdrop-blur-sm">
+            <p className="font-bold">
+              No accounts available
+            </p>
 
-          {savingsAccount && (
-            <AccountRow
-              account={savingsAccount}
-              onOpen={() =>
-                navigateWithLoader(
-                  `/payments`
-                )
-              }
-            />
-          )}
-
-          {!checkingAccount &&
-            !savingsAccount && (
-              <div className="rounded-[18px] bg-[#f5f8f9] px-5 py-8 text-center">
-                <p className="font-bold text-[#173743]">
-                  No accounts available
-                </p>
-
-                <p className="mt-2 text-sm text-[#718087]">
-                  You currently have no
-                  open accounts.
-                </p>
-              </div>
-            )}
-        </div>
+            <p className="mt-2 text-sm text-white/60">
+              You currently have no open accounts.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
-function AccountRow({
+function AccountCard({
   account,
   onOpen,
+  onTransfer,
 }: {
   account: DashboardAccount;
   onOpen: () => void;
+  onTransfer: () => void;
 }) {
   const isFrozen =
     account.status === "FROZEN";
 
   const transfersDisabled =
-    account.transferPermission ===
-    "DISABLED";
+    account.transferPermission === "DISABLED";
 
   const underReview =
-    account.transferPermission ===
-    "REVIEW";
+    account.transferPermission === "REVIEW";
 
   const canTransfer =
     account.status === "ACTIVE" &&
-    account.transferPermission ===
-    "ENABLED";
+    account.transferPermission === "ENABLED";
+
+  const accountName =
+    account.type === "CHECKING"
+      ? "Checking"
+      : "Savings";
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-[#dfe7ea] bg-white">
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-bold text-[#173743]">
-                {account.type ===
-                  "CHECKING"
-                  ? "Checking"
-                  : "Savings"}
-              </p>
+    <div className="relative overflow-hidden rounded-[22px] border border-white/20 bg-white/[0.12] p-5 shadow-sm backdrop-blur-md">
+      <div className="pointer-events-none absolute -bottom-16 -right-12 h-36 w-36 rounded-full border-[24px] border-white/[0.06]" />
 
-              {isFrozen && (
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
-                  FROZEN
-                </span>
-              )}
-
-              {!isFrozen &&
-                transfersDisabled && (
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
-                    TRANSFERS DISABLED
-                  </span>
-                )}
-
-              {!isFrozen &&
-                underReview && (
-                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
-                    REVIEW
-                  </span>
-                )}
-            </div>
-
-            <p className="mt-1 text-sm text-[#718087]">
-              ••••{" "}
-              {account.accountNumber.slice(
-                -4
-              )}
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="text-lg font-bold text-[#173743]">
-              {formatCurrency(
-                account.balance
-              )}
-            </p>
-
-            <p className="mt-1 text-xs text-[#718087]">
-              Available balance
-            </p>
-          </div>
-        </div>
-
-        {isFrozen && (
-          <div className="mt-4 flex gap-3 rounded-[16px] border border-blue-100 bg-blue-50 px-4 py-3">
-            <AlertTriangle
-              size={18}
-              className="mt-0.5 shrink-0 text-blue-700"
-            />
-
-            <div>
-              <p className="text-sm font-bold text-blue-800">
-                Account temporarily
-                unavailable
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-blue-700">
-                This account is currently
-                frozen. Its balance remains
-                visible, but transfers are
-                unavailable.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!isFrozen &&
-          transfersDisabled && (
-            <div className="mt-4 flex gap-3 rounded-[16px] border border-amber-100 bg-amber-50 px-4 py-3">
-              <LockKeyhole
-                size={18}
-                className="mt-0.5 shrink-0 text-amber-700"
-              />
-
-              <div>
-                <p className="text-sm font-bold text-amber-800">
-                  Transfers disabled
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-amber-700">
-                  Outgoing transfers are
-                  currently unavailable for
-                  this account.
-                </p>
-              </div>
-            </div>
-          )}
-
-        {!isFrozen &&
-          underReview && (
-            <div className="mt-4 flex gap-3 rounded-[16px] border border-amber-100 bg-amber-50 px-4 py-3">
-              <AlertTriangle
-                size={18}
-                className="mt-0.5 shrink-0 text-amber-700"
-              />
-
-              <div>
-                <p className="text-sm font-bold text-amber-800">
-                  Transfers under review
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-amber-700">
-                  Transfer access for this
-                  account is currently
-                  under review.
-                </p>
-              </div>
-            </div>
-          )}
-
-        <div className="mt-4 flex items-center justify-between border-t border-[#edf1f2] pt-4">
+      <div className="relative">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-[#718087]">
-              Account status
-            </p>
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
+                {account.type === "CHECKING" ? (
+                  <WalletCards size={18} />
+                ) : (
+                  <PiggyBank size={18} />
+                )}
+              </div>
 
-            <p
-              className={`mt-1 text-sm font-bold ${isFrozen
-                  ? "text-blue-700"
-                  : "text-emerald-700"
-                }`}
-            >
-              {account.status}
-            </p>
+              <div>
+                <p className="text-sm font-bold">
+                  {accountName}
+                </p>
+
+                <p className="mt-0.5 text-xs text-white/60">
+                  •••• {account.accountNumber.slice(-4)}
+                </p>
+              </div>
+            </div>
           </div>
 
           <button
             type="button"
-            disabled={!canTransfer}
             onClick={onOpen}
-            className="inline-flex h-[42px] items-center justify-center gap-2 rounded-full bg-[#003b4d] px-5 text-sm font-bold text-white transition hover:bg-[#002f3e] disabled:cursor-not-allowed disabled:bg-[#dbe3e6] disabled:text-[#839197]"
+            aria-label={`Open ${accountName} account`}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 transition hover:bg-white/25"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        <p className="mt-6 text-2xl font-bold tracking-tight">
+          {formatCurrency(account.balance)}
+        </p>
+
+        <p className="mt-1 text-xs text-white/55">
+          Available balance
+        </p>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/15 pt-4">
+          <AccountStatus
+            isFrozen={isFrozen}
+            transfersDisabled={transfersDisabled}
+            underReview={underReview}
+          />
+
+          <button
+            type="button"
+            disabled={!canTransfer}
+            onClick={onTransfer}
+            className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-white px-4 text-xs font-bold text-[#003b4d] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/45"
           >
             Transfer
-            <ArrowUpRight
-              size={16}
-            />
+            <ArrowUpRight size={14} />
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function AccountStatus({
+  isFrozen,
+  transfersDisabled,
+  underReview,
+}: {
+  isFrozen: boolean;
+  transfersDisabled: boolean;
+  underReview: boolean;
+}) {
+  if (isFrozen) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-bold text-blue-100">
+        <AlertTriangle size={14} />
+        Frozen
+      </div>
+    );
+  }
+
+  if (transfersDisabled) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-100">
+        <LockKeyhole size={14} />
+        Transfers disabled
+      </div>
+    );
+  }
+
+  if (underReview) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-100">
+        <AlertTriangle size={14} />
+        Under review
+      </div>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-100">
+      <span className="h-2 w-2 rounded-full bg-emerald-300" />
+      Active
+    </span>
   );
 }
