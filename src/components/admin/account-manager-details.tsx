@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    AlertTriangle,
     ArrowLeft,
     ExternalLink,
     Loader2,
@@ -8,6 +9,7 @@ import {
     RefreshCw,
     UserMinus,
     Users,
+    X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +18,7 @@ import {
 } from "react";
 
 import { assignAccountManager } from "@/server/actions/assign-account-manager";
+import { demoteAccountManager } from "@/server/actions/demote-account-manager";
 
 type OtherManager = {
     id: string;
@@ -86,20 +89,16 @@ export function AccountManagerDetails({
 }: AccountManagerDetailsProps) {
     const router = useRouter();
 
-    const [selectedManagers, setSelectedManagers] =
-        useState<Record<string, string>>({});
+    const [selectedManagers, setSelectedManagers] = useState<Record<string, string>>({});
+    const [pendingCustomerId, setPendingCustomerId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
-    const [pendingCustomerId, setPendingCustomerId] =
-        useState<string | null>(null);
+    const [demoteOpen, setDemoteOpen] = useState(false);
+    const [demoteConfirmation, setDemoteConfirmation] = useState("");
+    const [demoting, setDemoting] = useState(false);
 
-    const [error, setError] =
-        useState<string | null>(null);
-
-    const [success, setSuccess] =
-        useState<string | null>(null);
-
-    const [isPending, startTransition] =
-        useTransition();
+    const [isPending, startTransition] = useTransition();
 
     const managerName = getName(
         manager.profile,
@@ -153,9 +152,10 @@ export function AccountManagerDetails({
     function removeCustomer(
         customerId: string
     ) {
-        const confirmed = window.confirm(
-            "Remove this customer's account manager? The customer will become unassigned."
-        );
+        const confirmed =
+            window.confirm(
+                "Remove this customer's account manager? The customer will become unassigned."
+            );
 
         if (!confirmed) {
             return;
@@ -187,6 +187,51 @@ export function AccountManagerDetails({
             );
 
             setPendingCustomerId(null);
+            router.refresh();
+        });
+    }
+
+    function closeDemoteDialog() {
+        if (demoting) {
+            return;
+        }
+
+        setDemoteOpen(false);
+        setDemoteConfirmation("");
+        setError(null);
+    }
+
+    function handleDemotion() {
+        if (
+            demoteConfirmation !== "DEMOTE"
+        ) {
+            setError(
+                "Type DEMOTE to confirm."
+            );
+            return;
+        }
+
+        setError(null);
+        setSuccess(null);
+        setDemoting(true);
+
+        startTransition(async () => {
+            const result =
+                await demoteAccountManager(
+                    manager.id,
+                    demoteConfirmation
+                );
+
+            if (!result.success) {
+                setError(
+                    result.error ??
+                        "Unable to demote account manager."
+                );
+                setDemoting(false);
+                return;
+            }
+
+            router.push("/admin/users");
             router.refresh();
         });
     }
@@ -450,6 +495,152 @@ export function AccountManagerDetails({
                     </div>
                 )}
             </section>
+
+            <section className="rounded-[24px] border border-red-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p className="text-sm font-bold text-red-600">
+                            Danger zone
+                        </p>
+
+                        <h2 className="mt-1 text-xl font-bold text-[#173743]">
+                            Demote account manager
+                        </h2>
+
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#718087]">
+                            Change this account manager back to a normal customer. They must have no assigned customers before they can be demoted.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        disabled={manager.managedCustomers.length > 0}
+                        onClick={() => {
+                            setDemoteOpen(true);
+                            setError(null);
+                            setSuccess(null);
+                        }}
+                        className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                        <UserMinus size={17} />
+                        Demote manager
+                    </button>
+                </div>
+
+                {manager.managedCustomers.length > 0 && (
+                    <p className="mt-4 rounded-[16px] bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                        Reassign or unassign all {manager.managedCustomers.length} customer{manager.managedCustomers.length === 1 ? "" : "s"} before demoting this account manager.
+                    </p>
+                )}
+            </section>
+
+            {demoteOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 px-4">
+                    <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                                <AlertTriangle className="h-6 w-6" />
+                            </div>
+
+                            <button
+                                type="button"
+                                disabled={demoting}
+                                onClick={closeDemoteDialog}
+                                className="flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <h2 className="mt-5 text-xl font-bold text-slate-950">
+                            Demote account manager?
+                        </h2>
+
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                            <strong>{managerName}</strong> will lose account-manager access and become a normal customer again.
+                        </p>
+
+                        <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                            <p className="font-semibold text-slate-900">
+                                {managerName}
+                            </p>
+
+                            <p className="mt-1 text-sm text-slate-500">
+                                {manager.email}
+                            </p>
+                        </div>
+
+                        <div className="mt-5">
+                            <label
+                                htmlFor="demote-confirmation"
+                                className="text-sm font-semibold text-slate-700"
+                            >
+                                Type{" "}
+                                <span className="font-bold text-red-600">
+                                    DEMOTE
+                                </span>{" "}
+                                to confirm
+                            </label>
+
+                            <input
+                                id="demote-confirmation"
+                                type="text"
+                                autoComplete="off"
+                                value={demoteConfirmation}
+                                disabled={demoting}
+                                onChange={(event) => {
+                                    setDemoteConfirmation(
+                                        event.target.value
+                                    );
+                                    setError(null);
+                                }}
+                                placeholder="DEMOTE"
+                                className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none transition focus:border-red-400"
+                            />
+                        </div>
+
+                        {error && (
+                            <p className="mt-3 text-sm font-medium text-red-600">
+                                {error}
+                            </p>
+                        )}
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                disabled={demoting}
+                                onClick={closeDemoteDialog}
+                                className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled={
+                                    demoting ||
+                                    demoteConfirmation !==
+                                        "DEMOTE"
+                                }
+                                onClick={handleDemotion}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {demoting ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Demoting
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserMinus className="h-4 w-4" />
+                                        Demote manager
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
