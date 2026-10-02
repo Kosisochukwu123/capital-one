@@ -6,11 +6,15 @@ import { getAdminDashboardData } from "@/server/queries/get-admin-dashboard-data
 
 export default async function AdminPage() {
     const admin = await requireAdmin();
-    const data = await getAdminDashboardData();
+    const data = await getAdminDashboardData(admin);
 
     const adminName = admin.profile
         ? `${admin.profile.firstName} ${admin.profile.lastName}`
         : admin.email;
+
+
+    const isSuperAdmin =
+        admin.role === "SUPER_ADMIN";
 
     return (
         <main className="min-h-screen bg-[#eef6fb] px-4 py-8">
@@ -26,12 +30,14 @@ export default async function AdminPage() {
                     </div>
 
                     <Link href="/admin/users" className="rounded-full bg-[#003b4d] px-6 py-3 font-semibold text-white">
-                        Manage users
+                        {isSuperAdmin
+                            ? "Manage users"
+                            : "My customers"}
                     </Link>
                 </div>
 
                 <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <StatCard label="Users" value={data.totalUsers} />
+                    <StatCard label={isSuperAdmin ? "Users" : "My customers"} value={data.totalUsers} />
                     <StatCard label="Active users" value={data.activeUsers} />
                     <StatCard label="Suspended" value={data.suspendedUsers} />
                     <StatCard label="Accounts" value={data.totalAccounts} />
@@ -42,8 +48,17 @@ export default async function AdminPage() {
                 <section className="mt-8 overflow-hidden rounded-[24px] bg-white">
                     <div className="flex items-center justify-between border-b border-[#e4eaed] px-6 py-5">
                         <div>
-                            <h2 className="text-xl font-bold text-[#173743]">Recent users</h2>
-                            <p className="mt-1 text-sm text-[#718087]">Recently created accounts.</p>
+                            <h2 className="text-xl font-bold text-[#173743]">
+                                {isSuperAdmin
+                                    ? "Recent users"
+                                    : "Recent customers"}
+                            </h2>
+
+                            <p className="mt-1 text-sm text-[#718087]">
+                                {isSuperAdmin
+                                    ? "Recently created customer accounts."
+                                    : "Recently assigned customer accounts."}
+                            </p>
                         </div>
 
                         <Link href="/admin/users" className="font-semibold text-[#006b7d]">

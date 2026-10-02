@@ -9,6 +9,7 @@ datasource db {
 enum UserRole {
   USER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum UserStatus {
@@ -112,6 +113,12 @@ model User {
 
   supportConversations SupportConversation[] @relation("SupportCustomer")
   supportMessages      SupportMessage[]      @relation("SupportSender")
+
+  accountManagerId String?
+  accountManager   User?   @relation("AccountManagerCustomers", fields: [accountManagerId], references: [id], onDelete: SetNull)
+  managedCustomers User[]  @relation("AccountManagerCustomers")
+
+  @@index([accountManagerId])
 }
 
 model Profile {

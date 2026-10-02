@@ -32,7 +32,10 @@ export async function requireAdmin() {
     redirect("/login");
   }
 
-  if (admin.role !== "ADMIN") {
+  if (
+    admin.role !== "ADMIN" &&
+    admin.role !== "SUPER_ADMIN"
+  ) {
     redirect("/");
   }
 

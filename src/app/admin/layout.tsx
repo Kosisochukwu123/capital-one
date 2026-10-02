@@ -1,21 +1,28 @@
 import { AdminHeader } from "@/components/admin/admin-header";
+import { requireAdmin } from "@/server/auth/require-admin";
 import { getAdminSupportUnreadCount } from "@/server/queries/get-support-unread-count";
 
 export default async function AdminLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  const unreadCount =
-    await getAdminSupportUnreadCount();
+    const admin = await requireAdmin();
 
-  return (
-    <>
-      <AdminHeader
-        unreadCount={unreadCount}
-      />
+    const unreadCount =
+        await getAdminSupportUnreadCount({
+            id: admin.id,
+            role: admin.role,
+        });
 
-      {children}
-    </>
-  );
+    return (
+        <>
+            <AdminHeader
+                unreadCount={unreadCount}
+                role={admin.role}
+            />
+
+            {children}
+        </>
+    );
 }

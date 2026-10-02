@@ -35,12 +35,15 @@ function formatDateTime(date: Date | null) {
 export default async function AdminTransactionPage({
   params,
 }: AdminTransactionPageProps) {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { id } = await params;
 
   const transaction =
-    await getAdminTransactionDetails(id);
+    await getAdminTransactionDetails(
+      id,
+      admin
+    );
 
   if (!transaction) {
     notFound();

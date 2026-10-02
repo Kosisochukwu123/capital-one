@@ -16,8 +16,23 @@ export async function getAdminUserDetails(
       status: true,
       onboardingComplete: true,
       requiresPinSetup: true,
+      accountManagerId: true,
       createdAt: true,
       updatedAt: true,
+
+      accountManager: {
+        select: {
+          id: true,
+          email: true,
+
+          profile: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
 
       profile: {
         select: {
@@ -89,6 +104,30 @@ export async function getAdminUserDetails(
       user.onboardingComplete,
     requiresPinSetup:
       user.requiresPinSetup,
+
+    accountManagerId:
+      user.accountManagerId,
+
+    accountManager:
+      user.accountManager
+        ? {
+            id: user.accountManager.id,
+            email:
+              user.accountManager.email,
+            profile:
+              user.accountManager.profile
+                ? {
+                    firstName:
+                      user.accountManager
+                        .profile.firstName,
+                    lastName:
+                      user.accountManager
+                        .profile.lastName,
+                  }
+                : null,
+          }
+        : null,
+
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
 

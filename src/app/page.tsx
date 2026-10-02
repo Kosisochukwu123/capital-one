@@ -32,10 +32,13 @@ export default async function HomePage() {
   if (!user || user.status !== "ACTIVE") {
     redirect("/login");
   }
-
-  if (user.role === "ADMIN") {
-    redirect("/admin");
-  }
+  
+if (
+  user.role === "ADMIN" ||
+  user.role === "SUPER_ADMIN"
+) {
+  redirect("/admin");
+}
 
   if (user.requiresPinSetup) {
     redirect("/setup/security");

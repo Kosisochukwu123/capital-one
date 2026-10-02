@@ -7,18 +7,17 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AccountManagerAssignment } from "@/components/admin/account-manager-assignment";
 import { CreateTransactionForm } from "@/components/admin/create-transaction-form";
+import { EditAccountDetails } from "@/components/admin/edit-account-details";
+import { EditCustomerProfile } from "@/components/admin/edit-customer-profile";
+import { PinResetControl } from "@/components/admin/pin-reset-control";
 import { UserAccountControls } from "@/components/admin/user-account-controls";
 import { formatCurrency } from "@/lib/utils";
-import { requireAdmin } from "@/server/auth/require-admin";
+import { requireCustomerAccess } from "@/server/auth/require-customer-access";
+// import { requireAdmin } from "@/server/auth/require-admin";
+import { getAccountManagers } from "@/server/queries/get-account-managers";
 import { getAdminUserDetails } from "@/server/queries/get-admin-user-details";
-
-import { PinResetControl } from "@/components/admin/pin-reset-control";
-
-
-import { EditAccountDetails } from "@/components/admin/edit-account-details";
-
-import { EditCustomerProfile } from "@/components/admin/edit-customer-profile";
 
 interface AdminUserPageProps {
     params: Promise<{
@@ -37,16 +36,20 @@ function formatDate(date: Date) {
 export default async function AdminUserPage({
     params,
 }: AdminUserPageProps) {
-    await requireAdmin();
-
     const { id } = await params;
 
-    const user =
-        await getAdminUserDetails(id);
+    const { admin } = await requireCustomerAccess(id);
+
+    const user = await getAdminUserDetails(id);
 
     if (!user) {
         notFound();
     }
+
+    const managers =
+        admin.role === "SUPER_ADMIN"
+            ? await getAccountManagers()
+            : [];
 
     const fullName = user.profile
         ? `${user.profile.firstName} ${user.profile.middleName
@@ -88,6 +91,18 @@ export default async function AdminUserPage({
                     </div>
                 </div>
 
+                {/* Account manager assignment - Super Admin only */}
+
+                {admin.role === "SUPER_ADMIN" && (
+                    <div className="mt-8">
+                        <AccountManagerAssignment
+                            customerId={user.id}
+                            currentManagerId={user.accountManagerId}
+                            managers={managers}
+                        />
+                    </div>
+                )}
+
                 {/* Personal information + security */}
 
                 <div className="mt-8 grid gap-5 lg:grid-cols-2">
@@ -105,17 +120,12 @@ export default async function AdminUserPage({
                         <div className="mt-6 space-y-4">
                             <Detail
                                 label="Customer ID"
-                                value={
-                                    user.customerId ?? "—"
-                                }
+                                value={user.customerId ?? "—"}
                             />
 
                             <Detail
                                 label="Phone"
-                                value={
-                                    user.profile?.phone ??
-                                    "—"
-                                }
+                                value={user.profile?.phone ?? "—"}
                             />
 
                             <Detail
@@ -123,8 +133,7 @@ export default async function AdminUserPage({
                                 value={
                                     user.profile?.dateOfBirth
                                         ? formatDate(
-                                            user.profile
-                                                .dateOfBirth
+                                            user.profile.dateOfBirth
                                         )
                                         : "—"
                                 }
@@ -132,49 +141,34 @@ export default async function AdminUserPage({
 
                             <Detail
                                 label="Address"
-                                value={
-                                    user.profile?.address ??
-                                    "—"
-                                }
+                                value={user.profile?.address ?? "—"}
                             />
 
                             <Detail
                                 label="City"
-                                value={
-                                    user.profile?.city ??
-                                    "—"
-                                }
+                                value={user.profile?.city ?? "—"}
                             />
 
                             <Detail
                                 label="State / Province"
-                                value={
-                                    user.profile?.state ??
-                                    "—"
-                                }
+                                value={user.profile?.state ?? "—"}
                             />
 
                             <Detail
                                 label="Country"
-                                value={
-                                    user.profile?.country ??
-                                    "—"
-                                }
+                                value={user.profile?.country ?? "—"}
                             />
 
                             <Detail
                                 label="Postal code"
                                 value={
-                                    user.profile
-                                        ?.postalCode ?? "—"
+                                    user.profile?.postalCode ?? "—"
                                 }
                             />
 
                             <Detail
                                 label="Registered"
-                                value={formatDate(
-                                    user.createdAt
-                                )}
+                                value={formatDate(user.createdAt)}
                             />
 
                             {user.profile && (
@@ -219,14 +213,11 @@ export default async function AdminUserPage({
                         </div>
 
                         <p className="mt-6 rounded-[18px] bg-[#f3f7f8] p-4 text-sm leading-6 text-[#66777e]">
-                            Passwords and transaction
-                            PINs are never displayed to
-                            administrators. Reset
-                            controls only require the
-                            customer to create new
+                            Passwords and transaction PINs are never
+                            displayed to administrators. Reset controls
+                            only require the customer to create new
                             credentials.
                         </p>
-
 
                         <div className="mt-5">
                             <PinResetControl
@@ -236,7 +227,6 @@ export default async function AdminUserPage({
                                 }
                             />
                         </div>
-
                     </section>
                 </div>
 
@@ -254,83 +244,86 @@ export default async function AdminUserPage({
                             </h2>
 
                             <p className="mt-1 text-sm text-[#718087]">
-                                Checking and savings
-                                accounts belonging to this
-                                user.
+                                Checking and savings accounts belonging
+                                to this user.
                             </p>
                         </div>
                     </div>
 
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
-                        {user.accounts.map(
-                            (account) => (
-                                <div
-                                    key={account.id}
-                                    className="rounded-[20px] border border-[#dfe7ea] p-5"
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <p className="font-bold text-[#173743]">
-                                                {account.type ===
-                                                    "CHECKING"
-                                                    ? "Checking"
-                                                    : "Savings"}
-                                            </p>
+                        {user.accounts.map((account) => (
+                            <div
+                                key={account.id}
+                                className="rounded-[20px] border border-[#dfe7ea] p-5"
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="font-bold text-[#173743]">
+                                            {account.type ===
+                                                "CHECKING"
+                                                ? "Checking"
+                                                : "Savings"}
+                                        </p>
 
-                                            <p className="mt-1 text-sm text-[#718087]">
-                                                ••••{" "}
-                                                {account.accountNumber.slice(
-                                                    -4
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <span className="rounded-full bg-[#edf5f7] px-3 py-1 text-xs font-bold text-[#45616b]">
-                                            {account.status}
-                                        </span>
+                                        <p className="mt-1 text-sm text-[#718087]">
+                                            ••••{" "}
+                                            {account.accountNumber.slice(
+                                                -4
+                                            )}
+                                        </p>
                                     </div>
 
-                                    <p className="mt-6 text-sm text-[#718087]">
-                                        Balance
-                                    </p>
+                                    <span className="rounded-full bg-[#edf5f7] px-3 py-1 text-xs font-bold text-[#45616b]">
+                                        {account.status}
+                                    </span>
+                                </div>
 
-                                    <p className="mt-1 text-2xl font-bold text-[#173743]">
-                                        {formatCurrency(
-                                            account.balance
+                                <p className="mt-6 text-sm text-[#718087]">
+                                    Balance
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-[#173743]">
+                                    {formatCurrency(
+                                        account.balance
+                                    )}
+                                </p>
+
+                                <div className="mt-5 space-y-3 border-t border-[#e5ebed] pt-4">
+                                    <Detail
+                                        label="Account number"
+                                        value={
+                                            account.accountNumber
+                                        }
+                                    />
+
+                                    <Detail
+                                        label="Opened"
+                                        value={formatDate(
+                                            account.openedAt
                                         )}
-                                    </p>
+                                    />
 
-                                    <div className="mt-5 space-y-3 border-t border-[#e5ebed] pt-4">
-                                        <Detail
-                                            label="Account number"
-                                            value={account.accountNumber}
-                                        />
+                                    <Detail
+                                        label="Transfers"
+                                        value={
+                                            account.transferPermission
+                                        }
+                                    />
 
-                                        <Detail
-                                            label="Opened"
-                                            value={formatDate(
+                                    <div className="pt-2">
+                                        <EditAccountDetails
+                                            userId={user.id}
+                                            accountId={
+                                                account.id
+                                            }
+                                            openedAt={
                                                 account.openedAt
-                                            )}
-                                        />
-
-                                        <Detail
-                                            label="Transfers"
-                                            value={
-                                                account.transferPermission
                                             }
                                         />
-
-                                        <div className="pt-2">
-                                            <EditAccountDetails
-                                                userId={user.id}
-                                                accountId={account.id}
-                                                openedAt={account.openedAt}
-                                            />
-                                        </div>
                                     </div>
                                 </div>
-                            )
-                        )}
+                            </div>
+                        ))}
                     </div>
                 </section>
 
@@ -357,11 +350,9 @@ export default async function AdminUserPage({
                         </h2>
 
                         <p className="mt-2 text-sm leading-6 text-[#718087]">
-                            Create a credit or
-                            debit. The selected account
-                            balance and transaction
-                            history will be updated
-                            together.
+                            Create a credit or debit. The selected
+                            account balance and transaction history
+                            will be updated together.
                         </p>
                     </div>
 
@@ -374,8 +365,7 @@ export default async function AdminUserPage({
                                     type: account.type,
                                     accountNumber:
                                         account.accountNumber,
-                                    balance:
-                                        account.balance,
+                                    balance: account.balance,
                                 })
                             )}
                         />
@@ -392,17 +382,14 @@ export default async function AdminUserPage({
                             </h2>
 
                             <p className="mt-1 text-sm text-[#718087]">
-                                Latest activity for this
-                                customer.
+                                Latest activity for this customer.
                             </p>
                         </div>
                     </div>
 
-                    {user.transactions.length ===
-                        0 ? (
+                    {user.transactions.length === 0 ? (
                         <div className="px-6 py-12 text-center text-[#718087]">
-                            This user has no
-                            transactions yet.
+                            This user has no transactions yet.
                         </div>
                     ) : (
                         <div>
@@ -444,9 +431,9 @@ export default async function AdminUserPage({
                                         <div className="flex shrink-0 items-center gap-4">
                                             <p
                                                 className={`font-bold ${transaction.type ===
-                                                    "CREDIT"
-                                                    ? "text-[#159873]"
-                                                    : "text-[#173743]"
+                                                        "CREDIT"
+                                                        ? "text-[#159873]"
+                                                        : "text-[#173743]"
                                                     }`}
                                             >
                                                 {transaction.type ===

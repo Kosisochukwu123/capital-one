@@ -31,13 +31,15 @@ export default async function MessagesPage() {
   if (!user || user.status !== "ACTIVE") {
     redirect("/login");
   }
-
-  if (user.role === "ADMIN") {
+  if (
+    user.role === "ADMIN" ||
+    user.role === "SUPER_ADMIN"
+  ) {
     redirect("/admin");
   }
 
 
-await cleanupResolvedSupportConversations();
+  await cleanupResolvedSupportConversations();
 
 
   const conversations = await getUserSupport(

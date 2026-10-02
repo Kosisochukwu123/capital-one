@@ -6,10 +6,7 @@ import { signIn } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/validations/auth";
 
-export async function loginAction(values: {
-  email: string;
-  password: string;
-}) {
+export async function loginAction(values: { email: string; password: string }) {
   const parsed = loginSchema.safeParse(values);
 
   if (!parsed.success) {
@@ -48,7 +45,7 @@ export async function loginAction(values: {
 
     let redirectTo = "/";
 
-    if (user.role === "ADMIN") {
+    if (user.role === "ADMIN" || user.role === "SUPER_ADMIN") {
       redirectTo = "/admin";
     } else if (user.requiresPinSetup) {
       redirectTo = "/setup/security";
@@ -80,7 +77,7 @@ export async function loginAction(values: {
 
     const passwordMatches = await bcrypt.compare(
       parsed.data.password,
-      user.passwordHash
+      user.passwordHash,
     );
 
     if (!passwordMatches) {
