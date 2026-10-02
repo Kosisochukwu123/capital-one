@@ -19,6 +19,8 @@ import { requireCustomerAccess } from "@/server/auth/require-customer-access";
 import { getAccountManagers } from "@/server/queries/get-account-managers";
 import { getAdminUserDetails } from "@/server/queries/get-admin-user-details";
 
+import { DeleteCustomerControl } from "@/components/admin/delete-customer-control";
+
 interface AdminUserPageProps {
     params: Promise<{
         id: string;
@@ -431,9 +433,9 @@ export default async function AdminUserPage({
                                         <div className="flex shrink-0 items-center gap-4">
                                             <p
                                                 className={`font-bold ${transaction.type ===
-                                                        "CREDIT"
-                                                        ? "text-[#159873]"
-                                                        : "text-[#173743]"
+                                                    "CREDIT"
+                                                    ? "text-[#159873]"
+                                                    : "text-[#173743]"
                                                     }`}
                                             >
                                                 {transaction.type ===
@@ -456,6 +458,17 @@ export default async function AdminUserPage({
                         </div>
                     )}
                 </section>
+
+
+                {admin.role === "SUPER_ADMIN" && (
+                    <div className="mt-5">
+                        <DeleteCustomerControl
+                            customerId={user.id}
+                            customerName={fullName}
+                            customerEmail={user.email}
+                        />
+                    </div>
+                )}
             </div>
         </main>
     );
