@@ -274,7 +274,7 @@ export function CardsView() {
           </p>
 
           <p className="mt-1 text-xs leading-5 text-[#718087]">
-            Only limited simulator card information is displayed here. Full payment card numbers are not stored or exposed.
+            Only limited card information is displayed here. Full payment card numbers are not stored or exposed.
           </p>
         </div>
       </div>
