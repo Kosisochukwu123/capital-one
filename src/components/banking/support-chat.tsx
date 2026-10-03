@@ -1,16 +1,22 @@
 "use client";
 
 import {
-  ArrowLeft,
   CheckCircle2,
   Headphones,
+  ImagePlus,
   Loader2,
   MessageCircle,
   Plus,
   Send,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   markSupportMessagesReadAction,
@@ -22,7 +28,9 @@ type SupportMessage = {
   id: string;
   senderId: string;
   senderRole: "USER" | "ADMIN";
-  body: string;
+  body: string | null;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
   readAt: Date | null;
   createdAt: Date;
 };
@@ -68,10 +76,20 @@ export function SupportChat({
     useState(conversations.length === 0);
 
   const [subject, setSubject] = useState("");
+
   const [firstMessage, setFirstMessage] =
     useState("");
 
   const [message, setMessage] = useState("");
+
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
+
+  const [imagePreview, setImagePreview] =
+    useState<string | null>(null);
+
+  const imageInputRef =
+    useRef<HTMLInputElement | null>(null);
 
   const [submitting, setSubmitting] =
     useState(false);
@@ -97,7 +115,8 @@ export function SupportChat({
     const hasUnreadAdminMessage =
       selectedConversation.messages.some(
         (supportMessage) =>
-          supportMessage.senderRole === "ADMIN" &&
+          supportMessage.senderRole ===
+            "ADMIN" &&
           !supportMessage.readAt
       );
 
@@ -109,6 +128,14 @@ export function SupportChat({
       selectedConversation.id
     );
   }, [selectedConversation]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   async function handleCreateConversation() {
     if (submitting) {
@@ -129,6 +156,7 @@ export function SupportChat({
         result.error ??
           "Unable to start conversation."
       );
+
       setSubmitting(false);
       return;
     }
@@ -136,11 +164,72 @@ export function SupportChat({
     window.location.reload();
   }
 
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setError(null);
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        "Only JPG, PNG and WebP images are allowed."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      setError(
+        "Image must be 5MB or smaller."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    const preview =
+      URL.createObjectURL(file);
+
+    setSelectedImage(file);
+    setImagePreview(preview);
+  }
+
+  function removeSelectedImage() {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setSelectedImage(null);
+    setImagePreview(null);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  }
+
   async function handleSendMessage() {
     if (
       submitting ||
       !selectedConversation ||
-      !message.trim()
+      (!message.trim() && !selectedImage)
     ) {
       return;
     }
@@ -148,23 +237,53 @@ export function SupportChat({
     setError(null);
     setSubmitting(true);
 
+    const formData = new FormData();
+
+    formData.append(
+      "conversationId",
+      selectedConversation.id
+    );
+
+    formData.append(
+      "message",
+      message.trim()
+    );
+
+    if (selectedImage) {
+      formData.append(
+        "image",
+        selectedImage
+      );
+    }
+
     const result =
-      await sendSupportMessageAction({
-        conversationId:
-          selectedConversation.id,
-        message,
-      });
+      await sendSupportMessageAction(
+        formData
+      );
 
     if (!result.success) {
       setError(
         result.error ??
           "Unable to send message."
       );
+
       setSubmitting(false);
       return;
     }
 
     setMessage("");
+
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    setSelectedImage(null);
+    setImagePreview(null);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+
     window.location.reload();
   }
 
@@ -178,7 +297,8 @@ export function SupportChat({
             </h1>
 
             <p className="mt-1 text-sm text-[#718087]">
-              Tell us what you need help with.
+              Tell us what you need help
+              with.
             </p>
           </div>
 
@@ -204,7 +324,9 @@ export function SupportChat({
             <input
               value={subject}
               onChange={(event) =>
-                setSubject(event.target.value)
+                setSubject(
+                  event.target.value
+                )
               }
               maxLength={120}
               placeholder="What can we help with?"
@@ -282,13 +404,15 @@ export function SupportChat({
         </h1>
 
         <p className="mt-2 text-sm text-[#718087]">
-          Start a conversation with our support
-          team.
+          Start a conversation with our
+          support team.
         </p>
 
         <button
           type="button"
-          onClick={() => setCreating(true)}
+          onClick={() =>
+            setCreating(true)
+          }
           className="mt-6 rounded-[16px] bg-[#006b7d] px-5 py-3 font-bold text-white"
         >
           Start conversation
@@ -324,7 +448,9 @@ export function SupportChat({
                       setSelectedId(
                         conversation.id
                       );
+
                       setError(null);
+                      removeSelectedImage();
                     }}
                     className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${selectedId === conversation.id ? "bg-[#003b4d] text-white" : "bg-[#edf5f7] text-[#173743]"}`}
                   >
@@ -366,7 +492,9 @@ export function SupportChat({
             </div>
 
             <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${selectedConversation.status === "OPEN" ? "bg-[#e7f7f1] text-[#16835f]" : "bg-[#edf1f3] text-[#66777e]"}`}>
-              {selectedConversation.status}
+              {
+                selectedConversation.status
+              }
             </span>
           </div>
         </div>
@@ -397,10 +525,40 @@ export function SupportChat({
                       </div>
                     )}
 
-                    <div className={`rounded-[20px] px-4 py-3 ${isUser ? "rounded-br-[6px] bg-[#006b7d] text-white" : "rounded-bl-[6px] border border-[#e2eaed] bg-white text-[#173743]"}`}>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                        {supportMessage.body}
-                      </p>
+                    <div className={`overflow-hidden rounded-[20px] ${isUser ? "rounded-br-[6px] bg-[#006b7d] text-white" : "rounded-bl-[6px] border border-[#e2eaed] bg-white text-[#173743]"}`}>
+                      {supportMessage.imageUrl && (
+                        <a
+                          href={
+                            supportMessage.imageUrl
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={
+                              supportMessage.imageUrl
+                            }
+                            alt="Support attachment"
+                            className="max-h-[340px] w-full max-w-[360px] object-cover"
+                          />
+                        </a>
+                      )}
+
+                      {supportMessage.body?.trim() && (
+                        <p className="whitespace-pre-wrap break-words px-4 py-3 text-sm leading-6">
+                          {
+                            supportMessage.body
+                          }
+                        </p>
+                      )}
+
+                      {!supportMessage.imageUrl &&
+                        !supportMessage.body?.trim() && (
+                          <p className="px-4 py-3 text-sm italic opacity-70">
+                            Empty message
+                          </p>
+                        )}
                     </div>
 
                     <p className={`mt-1.5 px-1 text-[11px] text-[#8a989e] ${isUser ? "text-right" : "text-left"}`}>
@@ -428,15 +586,72 @@ export function SupportChat({
               </div>
             )}
 
-            <div className="flex items-end gap-3">
+            {imagePreview && (
+              <div className="mb-3">
+                <div className="relative inline-block overflow-hidden rounded-[18px] border border-[#dce5e8] bg-[#f8fbfc]">
+                  <img
+                    src={imagePreview}
+                    alt="Selected attachment"
+                    className="max-h-[220px] max-w-[280px] object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={
+                      removeSelectedImage
+                    }
+                    disabled={submitting}
+                    aria-label="Remove image"
+                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white disabled:opacity-50"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <p className="mt-1.5 max-w-[280px] truncate text-xs text-[#829097]">
+                  {selectedImage?.name}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-end gap-2 sm:gap-3">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={
+                  handleImageChange
+                }
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  imageInputRef.current?.click()
+                }
+                disabled={submitting}
+                aria-label="Attach image"
+                title="Attach image"
+                className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border border-[#dce5e8] bg-white text-[#006b7d] transition hover:bg-[#edf5f7] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ImagePlus size={20} />
+              </button>
+
               <textarea
                 value={message}
                 onChange={(event) =>
-                  setMessage(event.target.value)
+                  setMessage(
+                    event.target.value
+                  )
                 }
                 maxLength={2000}
                 rows={2}
-                placeholder="Write a message..."
+                placeholder={
+                  selectedImage
+                    ? "Add a message (optional)..."
+                    : "Write a message..."
+                }
                 className="min-h-[52px] flex-1 resize-none rounded-[18px] border border-[#dce5e8] bg-white px-4 py-3 text-sm leading-6 text-[#173743] outline-none transition focus:border-[#006b7d]"
               />
 
@@ -444,9 +659,12 @@ export function SupportChat({
                 type="button"
                 disabled={
                   submitting ||
-                  !message.trim()
+                  (!message.trim() &&
+                    !selectedImage)
                 }
-                onClick={handleSendMessage}
+                onClick={
+                  handleSendMessage
+                }
                 className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-[#006b7d] text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? (
@@ -466,6 +684,7 @@ export function SupportChat({
                 onClick={() => {
                   setCreating(true);
                   setError(null);
+                  removeSelectedImage();
                 }}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#006b7d]"
               >
@@ -503,6 +722,7 @@ export function SupportChat({
               onClick={() => {
                 setCreating(true);
                 setError(null);
+                removeSelectedImage();
               }}
               className="mt-4 inline-flex items-center gap-2 font-semibold text-[#006b7d]"
             >

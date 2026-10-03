@@ -3,6 +3,7 @@
 import {
   CheckCircle2,
   Headphones,
+  ImageIcon,
   Loader2,
   RotateCcw,
   Send,
@@ -21,7 +22,9 @@ type Message = {
   id: string;
   senderId: string;
   senderRole: "USER" | "ADMIN";
-  body: string;
+  body: string | null;
+  imageUrl: string | null;
+  imagePublicId: string | null;
   readAt: Date | null;
   createdAt: Date;
 };
@@ -84,12 +87,11 @@ export function AdminSupportInbox({
       return;
     }
 
-    const hasUnread =
-      selected.messages.some(
-        (item) =>
-          item.senderRole === "USER" &&
-          !item.readAt
-      );
+    const hasUnread = selected.messages.some(
+      (item) =>
+        item.senderRole === "USER" &&
+        !item.readAt
+    );
 
     if (hasUnread) {
       void markCustomerSupportMessagesReadAction(
@@ -118,8 +120,10 @@ export function AdminSupportInbox({
 
     if (!result.success) {
       setError(
-        result.error ?? "Unable to send reply."
+        result.error ??
+          "Unable to send reply."
       );
+
       setWorking(false);
       return;
     }
@@ -146,6 +150,7 @@ export function AdminSupportInbox({
         result.error ??
           "Unable to resolve conversation."
       );
+
       setWorking(false);
       return;
     }
@@ -171,6 +176,7 @@ export function AdminSupportInbox({
         result.error ??
           "Unable to reopen conversation."
       );
+
       setWorking(false);
       return;
     }
@@ -211,51 +217,74 @@ export function AdminSupportInbox({
         </div>
 
         <div className="max-h-[680px] overflow-y-auto">
-          {conversations.map((conversation) => {
-            const unread =
-              conversation.messages.some(
-                (item) =>
-                  item.senderRole === "USER" &&
-                  !item.readAt
-              );
+          {conversations.map(
+            (conversation) => {
+              const unread =
+                conversation.messages.some(
+                  (item) =>
+                    item.senderRole ===
+                      "USER" &&
+                    !item.readAt
+                );
 
-            const lastMessage =
-              conversation.messages[
-                conversation.messages.length - 1
-              ];
+              const lastMessage =
+                conversation.messages[
+                  conversation.messages
+                    .length - 1
+                ];
 
-            return (
-              <button
-                key={conversation.id}
-                type="button"
-                onClick={() => {
-                  setSelectedId(conversation.id);
-                  setError(null);
-                }}
-                className={`w-full border-b border-[#edf1f2] p-4 text-left transition ${selectedId === conversation.id ? "bg-[#edf7f8]" : "bg-white hover:bg-[#f8fbfc]"}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="truncate font-bold text-[#173743]">
-                    {conversation.user.fullName}
+              return (
+                <button
+                  key={conversation.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(
+                      conversation.id
+                    );
+                    setError(null);
+                  }}
+                  className={`w-full border-b border-[#edf1f2] p-4 text-left transition ${selectedId === conversation.id ? "bg-[#edf7f8]" : "bg-white hover:bg-[#f8fbfc]"}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="truncate font-bold text-[#173743]">
+                      {
+                        conversation.user
+                          .fullName
+                      }
+                    </p>
+
+                    {unread && (
+                      <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#006b7d]" />
+                    )}
+                  </div>
+
+                  <p className="mt-1 truncate text-sm font-medium text-[#50666e]">
+                    {conversation.subject ||
+                      "Support"}
                   </p>
 
-                  {unread && (
-                    <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#006b7d]" />
+                  {lastMessage && (
+                    <div className="mt-2 flex min-w-0 items-center gap-1.5 text-xs text-[#829097]">
+                      {lastMessage.imageUrl && (
+                        <ImageIcon
+                          size={13}
+                          className="shrink-0"
+                        />
+                      )}
+
+                      <p className="truncate">
+                        {lastMessage.body?.trim()
+                          ? lastMessage.body
+                          : lastMessage.imageUrl
+                            ? "Photo"
+                            : "Message"}
+                      </p>
+                    </div>
                   )}
-                </div>
-
-                <p className="mt-1 truncate text-sm font-medium text-[#50666e]">
-                  {conversation.subject || "Support"}
-                </p>
-
-                {lastMessage && (
-                  <p className="mt-2 truncate text-xs text-[#829097]">
-                    {lastMessage.body}
-                  </p>
-                )}
-              </button>
-            );
-          })}
+                </button>
+              );
+            }
+          )}
         </div>
       </section>
 
@@ -280,7 +309,8 @@ export function AdminSupportInbox({
                 </p>
 
                 <p className="mt-2 font-semibold text-[#173743]">
-                  {selected.subject || "Customer support"}
+                  {selected.subject ||
+                    "Customer support"}
                 </p>
               </div>
 
@@ -291,35 +321,65 @@ export function AdminSupportInbox({
           </div>
 
           <div className="min-h-[420px] max-h-[520px] space-y-5 overflow-y-auto bg-[#f8fbfc] p-5">
-            {selected.messages.map((item) => {
-              const admin =
-                item.senderRole === "ADMIN";
+            {selected.messages.map(
+              (item) => {
+                const admin =
+                  item.senderRole ===
+                  "ADMIN";
 
-              return (
-                <div
-                  key={item.id}
-                  className={`flex ${admin ? "justify-end" : "justify-start"}`}
-                >
-                  <div className="max-w-[80%]">
-                    <p className={`mb-1 px-1 text-xs font-semibold ${admin ? "text-right text-[#006b7d]" : "text-[#66777e]"}`}>
-                      {admin
-                        ? "Administrator"
-                        : selected.user.fullName}
-                    </p>
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex ${admin ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className="max-w-[80%]">
+                      <p className={`mb-1 px-1 text-xs font-semibold ${admin ? "text-right text-[#006b7d]" : "text-[#66777e]"}`}>
+                        {admin
+                          ? "Administrator"
+                          : selected.user
+                              .fullName}
+                      </p>
 
-                    <div className={`rounded-[18px] px-4 py-3 ${admin ? "rounded-br-[5px] bg-[#006b7d] text-white" : "rounded-bl-[5px] border border-[#e1e9ec] bg-white text-[#173743]"}`}>
-                      <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                        {item.body}
+                      <div className={`overflow-hidden rounded-[18px] ${admin ? "rounded-br-[5px] bg-[#006b7d] text-white" : "rounded-bl-[5px] border border-[#e1e9ec] bg-white text-[#173743]"}`}>
+                        {item.imageUrl && (
+                          <a
+                            href={item.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <img
+                              src={item.imageUrl}
+                              alt="Support attachment"
+                              className="max-h-[340px] w-full max-w-[360px] object-cover"
+                            />
+                          </a>
+                        )}
+
+                        {item.body?.trim() && (
+                          <p className="whitespace-pre-wrap break-words px-4 py-3 text-sm leading-6">
+                            {item.body}
+                          </p>
+                        )}
+
+                        {!item.imageUrl &&
+                          !item.body?.trim() && (
+                            <p className="px-4 py-3 text-sm italic opacity-70">
+                              Empty message
+                            </p>
+                          )}
+                      </div>
+
+                      <p className={`mt-1 px-1 text-[11px] text-[#8a989e] ${admin ? "text-right" : ""}`}>
+                        {formatDate(
+                          item.createdAt
+                        )}
                       </p>
                     </div>
-
-                    <p className={`mt-1 px-1 text-[11px] text-[#8a989e] ${admin ? "text-right" : ""}`}>
-                      {formatDate(item.createdAt)}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
 
           <div className="border-t border-[#e5ebed] p-5">
@@ -334,7 +394,9 @@ export function AdminSupportInbox({
                 <textarea
                   value={message}
                   onChange={(event) =>
-                    setMessage(event.target.value)
+                    setMessage(
+                      event.target.value
+                    )
                   }
                   maxLength={2000}
                   rows={3}
@@ -346,17 +408,22 @@ export function AdminSupportInbox({
                   <button
                     type="button"
                     disabled={working}
-                    onClick={resolveConversation}
+                    onClick={
+                      resolveConversation
+                    }
                     className="inline-flex items-center gap-2 rounded-[14px] border border-[#dce5e8] px-4 py-3 text-sm font-bold text-[#173743] disabled:opacity-50"
                   >
-                    <CheckCircle2 size={17} />
+                    <CheckCircle2
+                      size={17}
+                    />
                     Resolve
                   </button>
 
                   <button
                     type="button"
                     disabled={
-                      working || !message.trim()
+                      working ||
+                      !message.trim()
                     }
                     onClick={sendReply}
                     className="inline-flex items-center gap-2 rounded-[14px] bg-[#006b7d] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
@@ -378,7 +445,9 @@ export function AdminSupportInbox({
               <button
                 type="button"
                 disabled={working}
-                onClick={reopenConversation}
+                onClick={
+                  reopenConversation
+                }
                 className="inline-flex items-center gap-2 rounded-[14px] bg-[#006b7d] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
               >
                 {working ? (
@@ -387,7 +456,9 @@ export function AdminSupportInbox({
                     className="animate-spin"
                   />
                 ) : (
-                  <RotateCcw size={17} />
+                  <RotateCcw
+                    size={17}
+                  />
                 )}
 
                 Reopen conversation

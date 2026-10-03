@@ -3,103 +3,103 @@ import { UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
 
 type AdminUser = {
-    id: string;
-    role: UserRole;
+  id: string;
+  role: UserRole;
 };
 
 export async function getAdminSupport(
-    admin: AdminUser
+  admin: AdminUser
 ) {
-    const conversations =
-        await db.supportConversation.findMany({
-            where: {
-                ...(admin.role === "ADMIN"
-                    ? {
-                          user: {
-                              accountManagerId:
-                                  admin.id,
-                          },
-                      }
-                    : {}),
+  const conversations =
+    await db.supportConversation.findMany({
+      where: {
+        ...(admin.role === "ADMIN"
+          ? {
+              user: {
+                accountManagerId: admin.id,
+              },
+            }
+          : {}),
+      },
+
+      orderBy: [
+        {
+          status: "asc",
+        },
+        {
+          updatedAt: "desc",
+        },
+      ],
+
+      select: {
+        id: true,
+        subject: true,
+        status: true,
+        resolvedAt: true,
+        createdAt: true,
+        updatedAt: true,
+
+        user: {
+          select: {
+            id: true,
+            email: true,
+            customerId: true,
+
+            profile: {
+              select: {
+                firstName: true,
+                middleName: true,
+                lastName: true,
+              },
             },
+          },
+        },
 
-            orderBy: [
-                {
-                    status: "asc",
-                },
-                {
-                    updatedAt: "desc",
-                },
-            ],
+        messages: {
+          orderBy: {
+            createdAt: "asc",
+          },
 
-            select: {
-                id: true,
-                subject: true,
-                status: true,
-                resolvedAt: true,
-                createdAt: true,
-                updatedAt: true,
+          select: {
+            id: true,
+            senderId: true,
+            senderRole: true,
+            body: true,
 
-                user: {
-                    select: {
-                        id: true,
-                        email: true,
-                        customerId: true,
+            // Image attachment
+            imageUrl: true,
+            imagePublicId: true,
 
-                        profile: {
-                            select: {
-                                firstName: true,
-                                middleName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
-                },
+            readAt: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
 
-                messages: {
-                    orderBy: {
-                        createdAt: "asc",
-                    },
+  return conversations.map(
+    (conversation) => ({
+      ...conversation,
 
-                    select: {
-                        id: true,
-                        senderId: true,
-                        senderRole: true,
-                        body: true,
-                        readAt: true,
-                        createdAt: true,
-                    },
-                },
-            },
-        });
+      user: {
+        ...conversation.user,
 
-    return conversations.map(
-        (conversation) => ({
-            ...conversation,
+        fullName:
+          conversation.user.profile
+            ? [
+                conversation.user.profile
+                  .firstName,
 
-            user: {
-                ...conversation.user,
+                conversation.user.profile
+                  .middleName,
 
-                fullName:
-                    conversation.user.profile
-                        ? [
-                              conversation.user
-                                  .profile
-                                  .firstName,
-
-                              conversation.user
-                                  .profile
-                                  .middleName,
-
-                              conversation.user
-                                  .profile
-                                  .lastName,
-                          ]
-                              .filter(Boolean)
-                              .join(" ")
-                        : conversation.user
-                              .email,
-            },
-        })
-    );
+                conversation.user.profile
+                  .lastName,
+              ]
+                .filter(Boolean)
+                .join(" ")
+            : conversation.user.email,
+      },
+    })
+  );
 }

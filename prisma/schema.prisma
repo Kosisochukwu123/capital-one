@@ -386,7 +386,12 @@ model SupportMessage {
 
   senderRole SupportSenderRole
 
-  body String
+  // A message can contain text, an image, or both.
+  body String?
+
+  // Cloudinary image information.
+  imageUrl      String?
+  imagePublicId String?
 
   readAt DateTime?
 
