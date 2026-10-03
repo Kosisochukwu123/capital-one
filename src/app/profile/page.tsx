@@ -94,6 +94,7 @@ export default async function ProfilePage() {
             accountNumber: true,
             status: true,
             transferPermission: true,
+            openedAt: true,
           },
         },
       },
@@ -148,6 +149,11 @@ export default async function ProfilePage() {
         "ENABLED"
     );
 
+  const accountOpeningDate =
+    user.accounts.length > 0
+      ? user.accounts[0].openedAt
+      : user.createdAt;
+
   const fields = [
     [
       "SURNAME",
@@ -200,8 +206,8 @@ export default async function ProfilePage() {
       user.profile?.postalCode || "—",
     ],
     [
-      "CUSTOMER SINCE",
-      formatDate(user.createdAt),
+      "ACCOUNT OPENED",
+      formatDate(accountOpeningDate),
     ],
   ];
 
@@ -325,8 +331,8 @@ export default async function ProfilePage() {
                     <div className="text-right">
                       <div
                         className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold ${available
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-amber-50 text-amber-700"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
                           }`}
                       >
                         {available && (
@@ -401,8 +407,8 @@ export default async function ProfilePage() {
 
             <span
               className={`rounded-full px-3 py-1.5 text-xs font-bold ${user.requiresPinSetup
-                  ? "bg-amber-50 text-amber-700"
-                  : "bg-emerald-50 text-emerald-700"
+                ? "bg-amber-50 text-amber-700"
+                : "bg-emerald-50 text-emerald-700"
                 }`}
             >
               {user.requiresPinSetup

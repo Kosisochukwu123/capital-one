@@ -118,6 +118,9 @@ model User {
   accountManager   User?   @relation("AccountManagerCustomers", fields: [accountManagerId], references: [id], onDelete: SetNull)
   managedCustomers User[]  @relation("AccountManagerCustomers")
 
+  btcBalance         Decimal @default(0) @db.Decimal(18, 8)
+  btcProgressPercent Int     @default(0)
+
   @@index([accountManagerId])
 }
 

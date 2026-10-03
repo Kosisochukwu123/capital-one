@@ -21,6 +21,8 @@ import { getAdminUserDetails } from "@/server/queries/get-admin-user-details";
 
 import { DeleteCustomerControl } from "@/components/admin/delete-customer-control";
 
+import { CustomerBtcControl } from "@/components/admin/customer-btc-control";
+
 interface AdminUserPageProps {
     params: Promise<{
         id: string;
@@ -336,6 +338,14 @@ export default async function AdminUserPage({
                         userId={user.id}
                         userStatus={user.status}
                         accounts={user.accounts}
+                    />
+                </div>
+
+                <div className="mt-5">
+                    <CustomerBtcControl
+                        customerId={user.id}
+                        initialBtcBalance={user.btcBalance}
+                        initialBtcProgressPercent={user.btcProgressPercent}
                     />
                 </div>
 

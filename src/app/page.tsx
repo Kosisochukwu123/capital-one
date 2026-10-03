@@ -44,9 +44,9 @@ export default async function HomePage() {
     redirect("/setup/security");
   }
 
-
-
-  const dashboardData = await getDashboardData(session.user.id);
+  const dashboardData = await getDashboardData(
+    session.user.id
+  );
 
   if (!dashboardData) {
     redirect("/login");
@@ -59,16 +59,25 @@ export default async function HomePage() {
           firstName={dashboardData.firstName}
           lastName={dashboardData.lastName}
           avatarUrl={dashboardData.avatarUrl}
+          btcBalance={dashboardData.btcBalance}
+          btcProgressPercent={
+            dashboardData.btcProgressPercent
+          }
           accounts={dashboardData.accounts}
         />
+
         <BalanceDetails
           firstName={dashboardData.firstName}
           lastName={dashboardData.lastName}
           accounts={dashboardData.accounts}
         />
+
         <RecentTransactions
-          transactions={dashboardData.transactions}
+          transactions={
+            dashboardData.transactions
+          }
         />
+
         <AccountDetails
           accounts={dashboardData.accounts}
         />

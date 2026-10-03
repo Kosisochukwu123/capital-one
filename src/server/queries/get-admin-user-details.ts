@@ -17,6 +17,11 @@ export async function getAdminUserDetails(
       onboardingComplete: true,
       requiresPinSetup: true,
       accountManagerId: true,
+
+      // BTC dashboard values
+      btcBalance: true,
+      btcProgressPercent: true,
+
       createdAt: true,
       updatedAt: true,
 
@@ -100,13 +105,23 @@ export async function getAdminUserDetails(
     email: user.email,
     customerId: user.customerId,
     status: user.status,
+
     onboardingComplete:
       user.onboardingComplete,
+
     requiresPinSetup:
       user.requiresPinSetup,
 
     accountManagerId:
       user.accountManagerId,
+
+    // Keep BTC as a string so we preserve
+    // all 8 decimal places accurately.
+    btcBalance:
+      user.btcBalance.toFixed(8),
+
+    btcProgressPercent:
+      user.btcProgressPercent,
 
     accountManager:
       user.accountManager
@@ -114,12 +129,14 @@ export async function getAdminUserDetails(
             id: user.accountManager.id,
             email:
               user.accountManager.email,
+
             profile:
               user.accountManager.profile
                 ? {
                     firstName:
                       user.accountManager
                         .profile.firstName,
+
                     lastName:
                       user.accountManager
                         .profile.lastName,
@@ -135,17 +152,31 @@ export async function getAdminUserDetails(
       ? {
           firstName:
             user.profile.firstName,
+
           middleName:
             user.profile.middleName,
+
           lastName:
             user.profile.lastName,
+
           dateOfBirth:
             user.profile.dateOfBirth,
-          phone: user.profile.phone,
-          country: user.profile.country,
-          state: user.profile.state,
-          city: user.profile.city,
-          address: user.profile.address,
+
+          phone:
+            user.profile.phone,
+
+          country:
+            user.profile.country,
+
+          state:
+            user.profile.state,
+
+          city:
+            user.profile.city,
+
+          address:
+            user.profile.address,
+
           postalCode:
             user.profile.postalCode,
         }

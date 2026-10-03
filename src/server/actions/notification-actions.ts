@@ -56,6 +56,7 @@ export async function markNotificationRead(
       },
     });
 
+    revalidatePath("/");
     revalidatePath("/notifications");
 
     return {
@@ -69,8 +70,7 @@ export async function markNotificationRead(
 
     return {
       success: false,
-      error:
-        "Unable to update notification.",
+      error: "Unable to update notification.",
     };
   }
 }
@@ -97,7 +97,8 @@ export async function markAllNotificationsRead(): Promise<NotificationActionResu
       },
     });
 
-   revalidatePath("/notifications");
+    revalidatePath("/");
+    revalidatePath("/notifications");
 
     return {
       success: true,
@@ -110,8 +111,71 @@ export async function markAllNotificationsRead(): Promise<NotificationActionResu
 
     return {
       success: false,
-      error:
-        "Unable to update notifications.",
+      error: "Unable to update notifications.",
+    };
+  }
+}
+
+export async function deleteNotification(
+  notificationId: string
+): Promise<NotificationActionResult> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      error: "Unauthorized.",
+    };
+  }
+
+  if (!notificationId) {
+    return {
+      success: false,
+      error: "Notification is required.",
+    };
+  }
+
+  try {
+    const notification =
+      await db.notification.findFirst({
+        where: {
+          id: notificationId,
+          userId: session.user.id,
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+    if (!notification) {
+      return {
+        success: false,
+        error: "Notification not found.",
+      };
+    }
+
+    await db.notification.delete({
+      where: {
+        id: notification.id,
+      },
+    });
+
+    revalidatePath("/");
+    revalidatePath("/notifications");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(
+      "Failed to delete notification:",
+      error
+    );
+
+    return {
+      success: false,
+      error: "Unable to delete notification.",
     };
   }
 }

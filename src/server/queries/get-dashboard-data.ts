@@ -5,9 +5,14 @@ export async function getDashboardData(userId: string) {
     where: {
       id: userId,
     },
+
     select: {
       id: true,
       customerId: true,
+
+      // Admin-controlled BTC dashboard values
+      btcBalance: true,
+      btcProgressPercent: true,
 
       profile: {
         select: {
@@ -24,9 +29,11 @@ export async function getDashboardData(userId: string) {
             not: "CLOSED",
           },
         },
+
         orderBy: {
           openedAt: "asc",
         },
+
         select: {
           id: true,
           type: true,
@@ -43,7 +50,9 @@ export async function getDashboardData(userId: string) {
         orderBy: {
           transactionDate: "desc",
         },
+
         take: 3,
+
         select: {
           id: true,
           reference: true,
@@ -67,10 +76,26 @@ export async function getDashboardData(userId: string) {
   return {
     id: user.id,
     customerId: user.customerId,
-    firstName: user.profile?.firstName ?? "Customer",
-    middleName: user.profile?.middleName ?? null,
-    lastName: user.profile?.lastName ?? "",
-    avatarUrl: user.profile?.avatarUrl ?? null,
+
+    firstName:
+      user.profile?.firstName ?? "Customer",
+
+    middleName:
+      user.profile?.middleName ?? null,
+
+    lastName:
+      user.profile?.lastName ?? "",
+
+    avatarUrl:
+      user.profile?.avatarUrl ?? null,
+
+    // Keep BTC as a string to preserve
+    // all 8 decimal places.
+    btcBalance:
+      user.btcBalance.toFixed(8),
+
+    btcProgressPercent:
+      user.btcProgressPercent,
 
     accounts: user.accounts.map((account) => ({
       id: account.id,
@@ -79,21 +104,25 @@ export async function getDashboardData(userId: string) {
       currency: account.currency,
       balance: account.balance.toNumber(),
       status: account.status,
-      transferPermission: account.transferPermission,
+      transferPermission:
+        account.transferPermission,
       openedAt: account.openedAt,
     })),
 
-    transactions: user.transactions.map((transaction) => ({
-      id: transaction.id,
-      reference: transaction.reference,
-      type: transaction.type,
-      status: transaction.status,
-      amount: transaction.amount.toNumber(),
-      title: transaction.title,
-      description: transaction.description,
-      category: transaction.category,
-      transactionDate: transaction.transactionDate,
-      accountId: transaction.accountId,
-    })),
+    transactions: user.transactions.map(
+      (transaction) => ({
+        id: transaction.id,
+        reference: transaction.reference,
+        type: transaction.type,
+        status: transaction.status,
+        amount: transaction.amount.toNumber(),
+        title: transaction.title,
+        description: transaction.description,
+        category: transaction.category,
+        transactionDate:
+          transaction.transactionDate,
+        accountId: transaction.accountId,
+      })
+    ),
   };
 }
