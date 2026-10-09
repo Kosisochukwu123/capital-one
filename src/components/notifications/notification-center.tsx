@@ -163,6 +163,806 @@ const notificationTranslations = {
   },
 };
 
+
+type TransferNotificationKind = "completed" | "failed";
+
+const transferNotificationTranslations: Record<
+  Language,
+  Record<
+    TransferNotificationKind,
+    {
+      title: string;
+      message: (amount: string, recipient: string) => string;
+    }
+  >
+> = {
+  en: {
+    completed: {
+      title: "Transfer completed",
+      message: (amount, recipient) =>
+        `${amount} transfer to ${recipient} has been completed successfully.`,
+    },
+    failed: {
+      title: "Transfer failed",
+      message: (amount, recipient) =>
+        `${amount} transfer to ${recipient} could not be completed. The funds have been returned to your account.`,
+    },
+  },
+  fr: {
+    completed: {
+      title: "Virement effectué",
+      message: (amount, recipient) =>
+        `Le virement de ${amount} vers ${recipient} a été effectué avec succès.`,
+    },
+    failed: {
+      title: "Échec du virement",
+      message: (amount, recipient) =>
+        `Le virement de ${amount} vers ${recipient} n'a pas pu être effectué. Les fonds ont été recrédités sur votre compte.`,
+    },
+  },
+  es: {
+    completed: {
+      title: "Transferencia completada",
+      message: (amount, recipient) =>
+        `La transferencia de ${amount} a ${recipient} se ha completado correctamente.`,
+    },
+    failed: {
+      title: "Transferencia fallida",
+      message: (amount, recipient) =>
+        `No se pudo completar la transferencia de ${amount} a ${recipient}. Los fondos se han devuelto a tu cuenta.`,
+    },
+  },
+  de: {
+    completed: {
+      title: "Überweisung abgeschlossen",
+      message: (amount, recipient) =>
+        `Die Überweisung von ${amount} an ${recipient} wurde erfolgreich abgeschlossen.`,
+    },
+    failed: {
+      title: "Überweisung fehlgeschlagen",
+      message: (amount, recipient) =>
+        `Die Überweisung von ${amount} an ${recipient} konnte nicht abgeschlossen werden. Der Betrag wurde Ihrem Konto wieder gutgeschrieben.`,
+    },
+  },
+  pt: {
+    completed: {
+      title: "Transferência concluída",
+      message: (amount, recipient) =>
+        `A transferência de ${amount} para ${recipient} foi concluída com sucesso.`,
+    },
+    failed: {
+      title: "Transferência falhada",
+      message: (amount, recipient) =>
+        `Não foi possível concluir a transferência de ${amount} para ${recipient}. Os fundos foram devolvidos à sua conta.`,
+    },
+  },
+};
+
+
+
+const pendingTransferTranslations: Record<
+  Language,
+  {
+    title: string;
+    message: (amount: string, recipient: string) => string;
+  }
+> = {
+  en: {
+    title: "Transfer pending",
+    message: (amount, recipient) =>
+      `${amount} transfer to ${recipient} is being processed.`,
+  },
+  fr: {
+    title: "Virement en attente",
+    message: (amount, recipient) =>
+      `Le virement de ${amount} vers ${recipient} est en cours de traitement.`,
+  },
+  es: {
+    title: "Transferencia pendiente",
+    message: (amount, recipient) =>
+      `La transferencia de ${amount} a ${recipient} se está procesando.`,
+  },
+  de: {
+    title: "Überweisung ausstehend",
+    message: (amount, recipient) =>
+      `Die Überweisung von ${amount} an ${recipient} wird bearbeitet.`,
+  },
+  pt: {
+    title: "Transferência pendente",
+    message: (amount, recipient) =>
+      `A transferência de ${amount} para ${recipient} está a ser processada.`,
+  },
+};
+
+
+
+
+function translatePendingTransfer(
+  notification: NotificationItem,
+  language: Language
+): { title: string; message: string } | null {
+  if (
+    notification.type !== "INFO" ||
+    notification.title !== "Transfer pending"
+  ) {
+    return null;
+  }
+
+  const separator = " transfer to ";
+  const suffix = " is being processed.";
+
+  const separatorIndex =
+    notification.message.indexOf(separator);
+
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const amount = notification.message.slice(
+    0,
+    separatorIndex
+  );
+
+  const remainder = notification.message.slice(
+    separatorIndex + separator.length
+  );
+
+  if (!remainder.endsWith(suffix)) {
+    return null;
+  }
+
+  const recipient = remainder.slice(
+    0,
+    -suffix.length
+  );
+
+  if (!recipient.trim()) {
+    return null;
+  }
+
+  const translation =
+    pendingTransferTranslations[language];
+
+  return {
+    title: translation.title,
+    message: translation.message(amount, recipient),
+  };
+}
+
+
+
+type BalanceNotificationKind = "credited" | "debited";
+
+const balanceNotificationTranslations: Record<
+  Language,
+  Record<
+    BalanceNotificationKind,
+    {
+      title: string;
+      message: (account: string, amount: string) => string;
+    }
+  >
+> = {
+  en: {
+    credited: {
+      title: "Account credited",
+      message: (account, amount) =>
+        `Your ${account} account has been credited with ${amount}.`,
+    },
+    debited: {
+      title: "Account debited",
+      message: (account, amount) =>
+        `${amount} has been debited from your ${account} account.`,
+    },
+  },
+  fr: {
+    credited: {
+      title: "Compte crédité",
+      message: (account, amount) =>
+        `Votre compte ${account} a été crédité de ${amount}.`,
+    },
+    debited: {
+      title: "Compte débité",
+      message: (account, amount) =>
+        `Un montant de ${amount} a été débité de votre compte ${account}.`,
+    },
+  },
+  es: {
+    credited: {
+      title: "Cuenta abonada",
+      message: (account, amount) =>
+        `Se han abonado ${amount} en tu cuenta ${account}.`,
+    },
+    debited: {
+      title: "Cuenta debitada",
+      message: (account, amount) =>
+        `Se han debitado ${amount} de tu cuenta ${account}.`,
+    },
+  },
+  de: {
+    credited: {
+      title: "Kontogutschrift",
+      message: (account, amount) =>
+        `Ihrem ${account}-Konto wurden ${amount} gutgeschrieben.`,
+    },
+    debited: {
+      title: "Kontobelastung",
+      message: (account, amount) =>
+        `Ihr ${account}-Konto wurde mit ${amount} belastet.`,
+    },
+  },
+  pt: {
+    credited: {
+      title: "Conta creditada",
+      message: (account, amount) =>
+        `A sua conta ${account} foi creditada com ${amount}.`,
+    },
+    debited: {
+      title: "Conta debitada",
+      message: (account, amount) =>
+        `Foram debitados ${amount} da sua conta ${account}.`,
+    },
+  },
+};
+
+
+
+function translateBalanceNotification(
+  notification: NotificationItem,
+  language: Language
+): { title: string; message: string } | null {
+  if (language === "en") {
+    return null;
+  }
+
+  const isCredit =
+    notification.type === "SUCCESS" &&
+    notification.title === "Account credited";
+
+  const isDebit =
+    notification.type === "INFO" &&
+    notification.title === "Account debited";
+
+  if (!isCredit && !isDebit) {
+    return null;
+  }
+
+  const kind: BalanceNotificationKind = isCredit
+    ? "credited"
+    : "debited";
+
+  const accountTypes = ["Checking", "Savings"] as const;
+
+  for (const accountType of accountTypes) {
+    let amount = "";
+
+    if (isCredit) {
+      const prefix =
+        `Your ${accountType} account has been credited with `;
+
+      if (
+        !notification.message.startsWith(prefix) ||
+        !notification.message.endsWith(".")
+      ) {
+        continue;
+      }
+
+      amount = notification.message.slice(
+        prefix.length,
+        -1
+      );
+    } else {
+      const suffix =
+        ` has been debited from your ${accountType} account.`;
+
+      if (!notification.message.endsWith(suffix)) {
+        continue;
+      }
+
+      amount = notification.message.slice(
+        0,
+        -suffix.length
+      );
+    }
+
+    if (!amount.trim()) {
+      continue;
+    }
+
+    const account =
+      accountNameTranslations[language][accountType];
+
+    const translation =
+      balanceNotificationTranslations[language][kind];
+
+    return {
+      title: translation.title,
+      message: translation.message(account, amount),
+    };
+  }
+
+  return null;
+}
+
+
+
+
+
+
+
+function translatePinResetNotification(
+  notification: NotificationItem,
+  language: Language
+): { title: string; message: string } | null {
+  const original = pinResetTranslations.en;
+
+  if (
+    notification.type !== "SECURITY" ||
+    notification.title !== original.title ||
+    notification.message !== original.message
+  ) {
+    return null;
+  }
+
+  return pinResetTranslations[language];
+}
+
+
+const pinResetTranslations: Record<
+  Language,
+  {
+    title: string;
+    message: string;
+  }
+> = {
+  en: {
+    title: "Transaction PIN reset",
+    message:
+      "Your transaction PIN has been reset. Create a new transaction PIN before making another transfer.",
+  },
+  fr: {
+    title: "Code PIN de transaction réinitialisé",
+    message:
+      "Votre code PIN de transaction a été réinitialisé. Créez un nouveau code PIN de transaction avant d'effectuer un autre virement.",
+  },
+  es: {
+    title: "PIN de transacciones restablecido",
+    message:
+      "Se ha restablecido tu PIN de transacciones. Crea un nuevo PIN de transacciones antes de realizar otra transferencia.",
+  },
+  de: {
+    title: "Transaktions-PIN zurückgesetzt",
+    message:
+      "Ihre Transaktions-PIN wurde zurückgesetzt. Erstellen Sie eine neue Transaktions-PIN, bevor Sie eine weitere Überweisung durchführen.",
+  },
+  pt: {
+    title: "PIN de transação redefinido",
+    message:
+      "O seu PIN de transação foi redefinido. Crie um novo PIN de transação antes de efetuar outra transferência.",
+  },
+};
+
+
+
+function translateNotification(
+  notification: NotificationItem,
+  language: Language
+): { title: string; message: string } {
+  const original = {
+    title: notification.title,
+    message: notification.message,
+  };
+
+  // Keep the original notification for English.
+  if (language === "en") {
+    return original;
+  }
+
+  // 1. Transaction PIN reset notifications.
+  const pinResetTranslation = translatePinResetNotification(
+    notification,
+    language
+  );
+
+  if (pinResetTranslation) {
+    return pinResetTranslation;
+  }
+
+  // 2. Account frozen, restored, and transfer permissions.
+  const accountTranslation = translateAccountNotification(
+    notification,
+    language
+  );
+
+  if (accountTranslation) {
+    return accountTranslation;
+  }
+
+  // 3. Admin-created account credit and debit notifications.
+  const balanceTranslation = translateBalanceNotification(
+    notification,
+    language
+  );
+
+  if (balanceTranslation) {
+    return balanceTranslation;
+  }
+
+  // 4. Pending transfer notifications.
+  const pendingTranslation = translatePendingTransfer(
+    notification,
+    language
+  );
+
+  if (pendingTranslation) {
+    return pendingTranslation;
+  }
+
+  // 5. Completed and failed transfer notifications.
+  let kind: TransferNotificationKind;
+  let suffix: string;
+
+  if (
+    notification.type === "SUCCESS" &&
+    notification.title === "Transfer completed"
+  ) {
+    kind = "completed";
+    suffix = " has been completed successfully.";
+  } else if (
+    notification.type === "WARNING" &&
+    notification.title === "Transfer failed"
+  ) {
+    kind = "failed";
+    suffix =
+      " could not be completed. The funds have been returned to your account.";
+  } else {
+    // Unknown notifications remain unchanged.
+    return original;
+  }
+
+  const prefixEnd = notification.message.indexOf(
+    " transfer to "
+  );
+
+  if (prefixEnd <= 0) {
+    return original;
+  }
+
+  const amount = notification.message.slice(
+    0,
+    prefixEnd
+  );
+
+  const remainder = notification.message.slice(
+    prefixEnd + " transfer to ".length
+  );
+
+  if (!remainder.endsWith(suffix)) {
+    return original;
+  }
+
+  const recipient = remainder.slice(
+    0,
+    -suffix.length
+  );
+
+  if (!recipient.trim()) {
+    return original;
+  }
+
+  const translation =
+    transferNotificationTranslations[language][kind];
+
+  return {
+    title: translation.title,
+    message: translation.message(amount, recipient),
+  };
+}
+
+
+
+
+
+type AccountNotificationKind =
+  | "frozen"
+  | "restored"
+  | "disabled"
+  | "review"
+  | "enabled";
+
+type AccountNotificationCopy = {
+  title: string;
+  message: (
+    accountName: string,
+    reason: string
+  ) => string;
+};
+
+const accountNotificationTranslations: Record<
+  Language,
+  Record<AccountNotificationKind, AccountNotificationCopy>
+> = {
+  en: {
+    frozen: {
+      title: "Account frozen",
+      message: (account, reason) =>
+        `Your ${account} account has been temporarily frozen.${reason}`,
+    },
+    restored: {
+      title: "Account restored",
+      message: (account) =>
+        `Your ${account} account is active again.`,
+    },
+    disabled: {
+      title: "Transfers disabled",
+      message: (account, reason) =>
+        `Outgoing transfers have been disabled for your ${account} account.${reason}`,
+    },
+    review: {
+      title: "Transfer access under review",
+      message: (account, reason) =>
+        `Transfer access for your ${account} account is currently under review.${reason}`,
+    },
+    enabled: {
+      title: "Transfers available",
+      message: (account) =>
+        `Outgoing transfers are now available for your ${account} account.`,
+    },
+  },
+  fr: {
+    frozen: {
+      title: "Compte bloqué",
+      message: (account, reason) =>
+        `Votre compte ${account} a été temporairement bloqué.${reason}`,
+    },
+    restored: {
+      title: "Compte réactivé",
+      message: (account) =>
+        `Votre compte ${account} est de nouveau actif.`,
+    },
+    disabled: {
+      title: "Virements désactivés",
+      message: (account, reason) =>
+        `Les virements sortants ont été désactivés pour votre compte ${account}.${reason}`,
+    },
+    review: {
+      title: "Accès aux virements en cours d'examen",
+      message: (account, reason) =>
+        `L'accès aux virements de votre compte ${account} est actuellement en cours d'examen.${reason}`,
+    },
+    enabled: {
+      title: "Virements disponibles",
+      message: (account) =>
+        `Les virements sortants sont désormais disponibles pour votre compte ${account}.`,
+    },
+  },
+  es: {
+    frozen: {
+      title: "Cuenta bloqueada",
+      message: (account, reason) =>
+        `Tu cuenta ${account} ha sido bloqueada temporalmente.${reason}`,
+    },
+    restored: {
+      title: "Cuenta reactivada",
+      message: (account) =>
+        `Tu cuenta ${account} vuelve a estar activa.`,
+    },
+    disabled: {
+      title: "Transferencias deshabilitadas",
+      message: (account, reason) =>
+        `Las transferencias salientes se han deshabilitado para tu cuenta ${account}.${reason}`,
+    },
+    review: {
+      title: "Acceso a transferencias en revisión",
+      message: (account, reason) =>
+        `El acceso a transferencias de tu cuenta ${account} está actualmente en revisión.${reason}`,
+    },
+    enabled: {
+      title: "Transferencias disponibles",
+      message: (account) =>
+        `Las transferencias salientes ya están disponibles para tu cuenta ${account}.`,
+    },
+  },
+  de: {
+    frozen: {
+      title: "Konto gesperrt",
+      message: (account, reason) =>
+        `Ihr ${account}-Konto wurde vorübergehend gesperrt.${reason}`,
+    },
+    restored: {
+      title: "Konto wieder aktiviert",
+      message: (account) =>
+        `Ihr ${account}-Konto ist wieder aktiv.`,
+    },
+    disabled: {
+      title: "Überweisungen deaktiviert",
+      message: (account, reason) =>
+        `Ausgehende Überweisungen wurden für Ihr ${account}-Konto deaktiviert.${reason}`,
+    },
+    review: {
+      title: "Überweisungszugang wird überprüft",
+      message: (account, reason) =>
+        `Der Überweisungszugang für Ihr ${account}-Konto wird derzeit überprüft.${reason}`,
+    },
+    enabled: {
+      title: "Überweisungen verfügbar",
+      message: (account) =>
+        `Ausgehende Überweisungen sind für Ihr ${account}-Konto wieder verfügbar.`,
+    },
+  },
+  pt: {
+    frozen: {
+      title: "Conta bloqueada",
+      message: (account, reason) =>
+        `A sua conta ${account} foi temporariamente bloqueada.${reason}`,
+    },
+    restored: {
+      title: "Conta reativada",
+      message: (account) =>
+        `A sua conta ${account} está novamente ativa.`,
+    },
+    disabled: {
+      title: "Transferências desativadas",
+      message: (account, reason) =>
+        `As transferências de saída foram desativadas para a sua conta ${account}.${reason}`,
+    },
+    review: {
+      title: "Acesso a transferências em análise",
+      message: (account, reason) =>
+        `O acesso a transferências da sua conta ${account} está atualmente em análise.${reason}`,
+    },
+    enabled: {
+      title: "Transferências disponíveis",
+      message: (account) =>
+        `As transferências de saída estão agora disponíveis para a sua conta ${account}.`,
+    },
+  },
+};
+
+const accountNameTranslations: Record<
+  Language,
+  Record<"Checking" | "Savings", string>
+> = {
+  en: {
+    Checking: "Checking",
+    Savings: "Savings",
+  },
+  fr: {
+    Checking: "courant",
+    Savings: "épargne",
+  },
+  es: {
+    Checking: "corriente",
+    Savings: "de ahorros",
+  },
+  de: {
+    Checking: "Giro",
+    Savings: "Spar",
+  },
+  pt: {
+    Checking: "à ordem",
+    Savings: "poupança",
+  },
+};
+
+const accountNotificationPatterns: Record<
+  AccountNotificationKind,
+  {
+    title: string;
+    type: NotificationType;
+    prefix: (account: string) => string;
+    hasReason: boolean;
+  }
+> = {
+  frozen: {
+    title: "Account frozen",
+    type: "WARNING",
+    prefix: (account) =>
+      `Your ${account} account has been temporarily frozen.`,
+    hasReason: true,
+  },
+  restored: {
+    title: "Account restored",
+    type: "SUCCESS",
+    prefix: (account) =>
+      `Your ${account} account is active again.`,
+    hasReason: false,
+  },
+  disabled: {
+    title: "Transfers disabled",
+    type: "WARNING",
+    prefix: (account) =>
+      `Outgoing transfers have been disabled for your ${account} account.`,
+    hasReason: true,
+  },
+  review: {
+    title: "Transfer access under review",
+    type: "INFO",
+    prefix: (account) =>
+      `Transfer access for your ${account} account is currently under review.`,
+    hasReason: true,
+  },
+  enabled: {
+    title: "Transfers available",
+    type: "SUCCESS",
+    prefix: (account) =>
+      `Outgoing transfers are now available for your ${account} account.`,
+    hasReason: false,
+  },
+};
+
+function translateAccountNotification(
+  notification: NotificationItem,
+  language: Language
+): { title: string; message: string } | null {
+  if (language === "en") {
+    return null;
+  }
+
+  const kinds: AccountNotificationKind[] = [
+    "frozen",
+    "restored",
+    "disabled",
+    "review",
+    "enabled",
+  ];
+
+  const accountTypes = [
+    "Checking",
+    "Savings",
+  ] as const;
+
+  for (const kind of kinds) {
+    const pattern = accountNotificationPatterns[kind];
+
+    if (
+      notification.title !== pattern.title ||
+      notification.type !== pattern.type
+    ) {
+      continue;
+    }
+
+    for (const accountType of accountTypes) {
+      const prefix = pattern.prefix(accountType);
+
+      if (!notification.message.startsWith(prefix)) {
+        continue;
+      }
+
+      const remainder = notification.message.slice(
+        prefix.length
+      );
+
+      if (!pattern.hasReason && remainder !== "") {
+        continue;
+      }
+
+      if (
+        pattern.hasReason &&
+        remainder !== "" &&
+        !remainder.startsWith(" ")
+      ) {
+        continue;
+      }
+
+      const account =
+        accountNameTranslations[language][accountType];
+
+      const translation =
+        accountNotificationTranslations[language][kind];
+
+      return {
+        title: translation.title,
+        message: translation.message(account, remainder),
+      };
+    }
+  }
+
+  return null;
+}
+
+
+
 function getNotificationIcon(type: NotificationType) {
   switch (type) {
     case "SUCCESS":
@@ -300,6 +1100,11 @@ function SwipeableNotification({
   onDelete,
 }: SwipeableNotificationProps) {
   const t = notificationTranslations[language];
+
+  const translatedNotification = translateNotification(
+    notification,
+    language
+  );
 
   const [offsetX, setOffsetX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -525,11 +1330,11 @@ function SwipeableNotification({
               <p
                 className={`text-[16px] text-[#173743] ${notification.read ? "font-semibold" : "font-bold"}`}
               >
-                {notification.title}
+                {translatedNotification.title}
               </p>
 
               <p className="mt-1 text-sm leading-6 text-[#65777e]">
-                {notification.message}
+                {translatedNotification.message}
               </p>
             </div>
 
