@@ -219,20 +219,17 @@ export default function LoginPage() {
     <main className="min-h-screen bg-[#f7f9fa] text-[#173743]">
       <header className="border-b border-[#e5eaed] bg-white">
         <div className="mx-auto flex h-[78px] max-w-[1180px] items-center justify-between gap-4 px-4 sm:px-8">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#003b4d] text-xl font-extrabold text-white">
-              N
-            </div>
 
-            <div>
-              <p className="text-[18px] font-extrabold tracking-tight text-[#003b4d] sm:text-[21px]">
-                Northstar
-              </p>
 
-              <p className="-mt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#00799a]">
-                Banking
-              </p>
-            </div>
+          <div className="flex min-w-0 items-center">
+            <Image
+              src="/northstar-logo.png"
+              alt="NorthstarBank — Your Trust. Our Priority."
+              width={210}
+              height={105}
+              priority
+              className="h-auto w-[145px] object-contain sm:w-[185px]"
+            />
           </div>
 
           <div className="relative">
@@ -277,16 +274,20 @@ export default function LoginPage() {
 
       <div className="mx-auto max-w-[1180px] px-4 pb-12 pt-10 sm:px-8 sm:pt-16">
         <section className="mx-auto w-full max-w-[540px] rounded-[22px] border border-[#e1e6e9] bg-white px-5 py-8 shadow-[0_12px_35px_rgba(0,42,58,0.04)] sm:px-10 sm:py-10">
+
           <div className="mb-9 text-center">
-            <div className="mx-auto flex h-[70px] w-[70px] items-center justify-center rounded-full bg-[#003b4d] text-[36px] font-extrabold text-white">
-              N
+            <div className="mx-auto flex max-w-[320px] items-center justify-center">
+              <Image
+                src="/northstar-logo.png"
+                alt="NorthstarBank — Your Trust. Our Priority."
+                width={600}
+                height={300}
+                priority
+                className="h-auto w-full object-contain"
+              />
             </div>
 
-            <p className="mt-3 text-[23px] font-extrabold tracking-tight text-[#003b4d]">
-              Northstar Banking
-            </p>
-
-            <h1 className="mt-8 text-[29px] font-semibold text-[#151d21]">
+            <h1 className="mt-5 text-[29px] font-semibold text-[#151d21]">
               {t.signIn}
             </h1>
           </div>
@@ -362,9 +363,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <p className="mt-4 text-xs text-[#718087]">
-            Mobile applications are not currently available for download.
-          </p>
+
         </section>
       </div>
 
