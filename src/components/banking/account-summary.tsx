@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 
 import { useAppLoader } from "@/components/feedback/loading-provider";
+import { useLanguage, type Language } from "@/contexts/language-context";
+import { translations } from "@/lib/i18n/translations";
 import { formatCurrency } from "@/lib/utils";
 
 type DashboardAccount = {
@@ -31,6 +33,74 @@ interface AccountSummaryProps {
   accounts: DashboardAccount[];
 }
 
+const summaryTranslations = {
+  en: {
+    hello: "Hello,",
+    btcBalance: "BTC Balance",
+    yourAccounts: "Your accounts",
+    activeAccount: "active account",
+    activeAccounts: "active accounts",
+    noAccounts: "No accounts available",
+    noAccountsDescription: "You currently have no open accounts.",
+    frozen: "Frozen",
+    transfersDisabled: "Transfers disabled",
+    underReview: "Under review",
+    active: "Active",
+  },
+  fr: {
+    hello: "Bonjour,",
+    btcBalance: "Solde BTC",
+    yourAccounts: "Vos comptes",
+    activeAccount: "compte actif",
+    activeAccounts: "comptes actifs",
+    noAccounts: "Aucun compte disponible",
+    noAccountsDescription: "Vous n'avez actuellement aucun compte ouvert.",
+    frozen: "Gelé",
+    transfersDisabled: "Virements désactivés",
+    underReview: "En cours d'examen",
+    active: "Actif",
+  },
+  es: {
+    hello: "Hola,",
+    btcBalance: "Saldo BTC",
+    yourAccounts: "Tus cuentas",
+    activeAccount: "cuenta activa",
+    activeAccounts: "cuentas activas",
+    noAccounts: "No hay cuentas disponibles",
+    noAccountsDescription: "Actualmente no tienes cuentas abiertas.",
+    frozen: "Congelada",
+    transfersDisabled: "Transferencias deshabilitadas",
+    underReview: "En revisión",
+    active: "Activa",
+  },
+  de: {
+    hello: "Hallo,",
+    btcBalance: "BTC-Guthaben",
+    yourAccounts: "Ihre Konten",
+    activeAccount: "aktives Konto",
+    activeAccounts: "aktive Konten",
+    noAccounts: "Keine Konten verfügbar",
+    noAccountsDescription: "Sie haben derzeit keine offenen Konten.",
+    frozen: "Eingefroren",
+    transfersDisabled: "Überweisungen deaktiviert",
+    underReview: "Wird überprüft",
+    active: "Aktiv",
+  },
+  pt: {
+    hello: "Olá,",
+    btcBalance: "Saldo BTC",
+    yourAccounts: "Suas contas",
+    activeAccount: "conta ativa",
+    activeAccounts: "contas ativas",
+    noAccounts: "Nenhuma conta disponível",
+    noAccountsDescription: "Você não possui contas abertas no momento.",
+    frozen: "Congelada",
+    transfersDisabled: "Transferências desativadas",
+    underReview: "Em análise",
+    active: "Ativa",
+  },
+} satisfies Record<Language, Record<string, string>>;
+
 export function AccountSummary({
   firstName,
   lastName,
@@ -40,6 +110,10 @@ export function AccountSummary({
   accounts,
 }: AccountSummaryProps) {
   const { navigateWithLoader } = useAppLoader();
+  const { language } = useLanguage();
+
+  const t = translations[language];
+  const st = summaryTranslations[language];
 
   const totalBalance = accounts.reduce(
     (total, account) => total + account.balance,
@@ -62,7 +136,6 @@ export function AccountSummary({
 
       <div className="relative px-4 pb-5 pt-5 sm:px-7 sm:pb-7 sm:pt-7">
         {/* Customer */}
-
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 border-white/70 bg-white/15 shadow-sm sm:h-12 sm:w-12">
             {avatarUrl ? (
@@ -80,7 +153,7 @@ export function AccountSummary({
 
           <div className="min-w-0">
             <p className="text-xs text-white/65 sm:text-sm">
-              Hello,
+              {st.hello}
             </p>
 
             <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">
@@ -90,10 +163,9 @@ export function AccountSummary({
         </div>
 
         {/* Main balance */}
-
         <div className="mt-5 sm:mt-7">
           <p className="text-xs font-medium text-white/60 sm:text-sm">
-            Total balance
+            {t.dashboard.totalBalance}
           </p>
 
           <h2 className="mt-1 text-[32px] font-bold leading-none tracking-[-0.04em] sm:text-[42px]">
@@ -102,12 +174,11 @@ export function AccountSummary({
         </div>
 
         {/* BTC balance */}
-
         <div className="mt-5 rounded-[18px] border border-white/10 bg-white/[0.07] p-3.5 backdrop-blur-sm sm:mt-6 sm:p-4">
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-medium text-white/60 sm:text-sm">
-                BTC Balance
+                {st.btcBalance}
               </p>
 
               <p className="mt-1 truncate font-mono text-lg font-bold tracking-tight sm:text-xl">
@@ -131,45 +202,41 @@ export function AccountSummary({
         </div>
 
         {/* Accounts heading */}
-
         <div className="mt-5 flex items-center justify-between gap-4 sm:mt-6">
           <div>
             <p className="text-base font-bold sm:text-lg">
-              Your accounts
+              {st.yourAccounts}
             </p>
 
             <p className="mt-0.5 text-[11px] text-white/50 sm:text-xs">
+              {accounts.length}{" "}
               {accounts.length === 1
-                ? "1 active account"
-                : `${accounts.length} active accounts`}
+                ? st.activeAccount
+                : st.activeAccounts}
             </p>
           </div>
         </div>
 
         {/* Accounts */}
-
         {accounts.length > 0 ? (
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-4 sm:gap-3">
             {accounts.map((account) => (
               <AccountCard
                 key={account.id}
                 account={account}
+                language={language}
                 onOpen={() =>
-                  navigateWithLoader(
-                    `/accounts/${account.id}`
-                  )
+                  navigateWithLoader(`/accounts/${account.id}`)
                 }
               />
             ))}
           </div>
         ) : (
           <div className="mt-4 rounded-[18px] border border-white/15 bg-white/10 px-5 py-7 text-center backdrop-blur-sm">
-            <p className="font-bold">
-              No accounts available
-            </p>
+            <p className="font-bold">{st.noAccounts}</p>
 
             <p className="mt-2 text-sm text-white/60">
-              You currently have no open accounts.
+              {st.noAccountsDescription}
             </p>
           </div>
         )}
@@ -180,13 +247,16 @@ export function AccountSummary({
 
 function AccountCard({
   account,
+  language,
   onOpen,
 }: {
   account: DashboardAccount;
+  language: Language;
   onOpen: () => void;
 }) {
-  const isFrozen =
-    account.status === "FROZEN";
+  const t = translations[language];
+
+  const isFrozen = account.status === "FROZEN";
 
   const transfersDisabled =
     account.transferPermission === "DISABLED";
@@ -196,8 +266,8 @@ function AccountCard({
 
   const accountName =
     account.type === "CHECKING"
-      ? "Checking"
-      : "Savings";
+      ? t.dashboard.checking
+      : t.dashboard.savings;
 
   return (
     <button
@@ -240,7 +310,7 @@ function AccountCard({
         </p>
 
         <p className="mt-1 hidden text-xs text-white/50 sm:block">
-          Available balance
+          {t.dashboard.availableBalance}
         </p>
 
         <div className="mt-3 border-t border-white/10 pt-3 sm:mt-5 sm:pt-4">
@@ -248,6 +318,7 @@ function AccountCard({
             isFrozen={isFrozen}
             transfersDisabled={transfersDisabled}
             underReview={underReview}
+            language={language}
           />
         </div>
       </div>
@@ -259,22 +330,20 @@ function AccountStatus({
   isFrozen,
   transfersDisabled,
   underReview,
+  language,
 }: {
   isFrozen: boolean;
   transfersDisabled: boolean;
   underReview: boolean;
+  language: Language;
 }) {
+  const st = summaryTranslations[language];
+
   if (isFrozen) {
     return (
       <div className="flex min-w-0 items-center gap-1 text-[10px] font-bold text-blue-100 sm:gap-1.5 sm:text-xs">
-        <AlertTriangle
-          size={13}
-          className="shrink-0"
-        />
-
-        <span className="truncate">
-          Frozen
-        </span>
+        <AlertTriangle size={13} className="shrink-0" />
+        <span className="truncate">{st.frozen}</span>
       </div>
     );
   }
@@ -282,13 +351,9 @@ function AccountStatus({
   if (transfersDisabled) {
     return (
       <div className="flex min-w-0 items-center gap-1 text-[10px] font-bold text-amber-100 sm:gap-1.5 sm:text-xs">
-        <LockKeyhole
-          size={13}
-          className="shrink-0"
-        />
-
+        <LockKeyhole size={13} className="shrink-0" />
         <span className="truncate">
-          Transfers disabled
+          {st.transfersDisabled}
         </span>
       </div>
     );
@@ -297,14 +362,8 @@ function AccountStatus({
   if (underReview) {
     return (
       <div className="flex min-w-0 items-center gap-1 text-[10px] font-bold text-amber-100 sm:gap-1.5 sm:text-xs">
-        <AlertTriangle
-          size={13}
-          className="shrink-0"
-        />
-
-        <span className="truncate">
-          Under review
-        </span>
+        <AlertTriangle size={13} className="shrink-0" />
+        <span className="truncate">{st.underReview}</span>
       </div>
     );
   }
@@ -312,7 +371,7 @@ function AccountStatus({
   return (
     <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-100 sm:text-xs">
       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300 sm:h-2 sm:w-2" />
-      Active
+      {st.active}
     </span>
   );
 }

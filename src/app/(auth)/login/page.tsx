@@ -10,14 +10,18 @@ import {
   Smartphone,
   X,
 } from "lucide-react";
-
 import Image from "next/image";
-
 import { useState } from "react";
 
 import { LoginForm } from "@/components/auth/login-form";
+import {
+  supportedLanguages,
+  useLanguage,
+  type Language,
+} from "@/contexts/language-context";
 
-export type LoginLanguage = "en" | "fr" | "es" | "de" | "pt";
+// Keep this export for the existing LoginForm component.
+export type LoginLanguage = Language;
 
 export const loginTranslations = {
   en: {
@@ -53,6 +57,7 @@ export const loginTranslations = {
     support: "Support",
     error: "Incorrect email address or password.",
   },
+
   fr: {
     signIn: "Connexion",
     email: "Adresse e-mail",
@@ -86,6 +91,7 @@ export const loginTranslations = {
     support: "Assistance",
     error: "Adresse e-mail ou mot de passe incorrect.",
   },
+
   es: {
     signIn: "Iniciar sesión",
     email: "Correo electrónico",
@@ -119,6 +125,7 @@ export const loginTranslations = {
     support: "Soporte",
     error: "Correo o contraseña incorrectos.",
   },
+
   de: {
     signIn: "Anmelden",
     email: "E-Mail-Adresse",
@@ -152,6 +159,7 @@ export const loginTranslations = {
     support: "Support",
     error: "E-Mail-Adresse oder Passwort falsch.",
   },
+
   pt: {
     signIn: "Entrar",
     email: "E-mail",
@@ -187,26 +195,25 @@ export const loginTranslations = {
   },
 };
 
-const languages: {
-  code: LoginLanguage;
-  name: string;
-  flag: string;
-}[] = [
-    { code: "en", name: "English", flag: "🇺🇸" },
-    { code: "fr", name: "Français", flag: "🇫🇷" },
-    { code: "es", name: "Español", flag: "🇪🇸" },
-    { code: "de", name: "Deutsch", flag: "🇩🇪" },
-    { code: "pt", name: "Português", flag: "🇵🇹" },
-  ];
-
 export default function LoginPage() {
-  const [language, setLanguage] = useState<LoginLanguage>("en");
+  // Shared language preference for the entire application.
+  const { language, setLanguage, isLanguageReady } = useLanguage();
+
+  // These states are only for the login page UI.
   const [languageOpen, setLanguageOpen] = useState(false);
   const [storeDialogOpen, setStoreDialogOpen] = useState(false);
   const [passkeyDialogOpen, setPasskeyDialogOpen] = useState(false);
 
   const t = loginTranslations[language];
-  const selectedLanguage = languages.find((item) => item.code === language)!;
+
+  const selectedLanguage =
+    supportedLanguages.find((item) => item.code === language) ??
+    supportedLanguages[0];
+
+  function closeDialog() {
+    setStoreDialogOpen(false);
+    setPasskeyDialogOpen(false);
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f9fa] text-[#173743]">
@@ -216,10 +223,12 @@ export default function LoginPage() {
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#003b4d] text-xl font-extrabold text-white">
               N
             </div>
+
             <div>
               <p className="text-[18px] font-extrabold tracking-tight text-[#003b4d] sm:text-[21px]">
                 Northstar
               </p>
+
               <p className="-mt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#00799a]">
                 Banking
               </p>
@@ -232,7 +241,8 @@ export default function LoginPage() {
               onClick={() => setLanguageOpen((current) => !current)}
               aria-expanded={languageOpen}
               aria-label="Select language"
-              className="flex items-center gap-2 rounded-xl border border-[#e2e8eb] px-3 py-2.5 text-sm font-semibold text-[#173743] hover:bg-[#f4f8fa]"
+              disabled={!isLanguageReady}
+              className="flex items-center gap-2 rounded-xl border border-[#e2e8eb] px-3 py-2.5 text-sm font-semibold text-[#173743] hover:bg-[#f4f8fa] disabled:opacity-60"
             >
               <span className="text-xl">{selectedLanguage.flag}</span>
               <span>{selectedLanguage.name}</span>
@@ -241,7 +251,7 @@ export default function LoginPage() {
 
             {languageOpen && (
               <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[205px] overflow-hidden rounded-xl border border-[#e2e8eb] bg-white py-1 shadow-xl">
-                {languages.map((item) => (
+                {supportedLanguages.map((item) => (
                   <button
                     key={item.code}
                     type="button"
@@ -255,6 +265,7 @@ export default function LoginPage() {
                       <span className="text-lg">{item.flag}</span>
                       {item.name}
                     </span>
+
                     {language === item.code && <Check size={16} />}
                   </button>
                 ))}
@@ -270,9 +281,11 @@ export default function LoginPage() {
             <div className="mx-auto flex h-[70px] w-[70px] items-center justify-center rounded-full bg-[#003b4d] text-[36px] font-extrabold text-white">
               N
             </div>
+
             <p className="mt-3 text-[23px] font-extrabold tracking-tight text-[#003b4d]">
               Northstar Banking
             </p>
+
             <h1 className="mt-8 text-[29px] font-semibold text-[#151d21]">
               {t.signIn}
             </h1>
@@ -290,6 +303,7 @@ export default function LoginPage() {
                 <Smartphone size={30} strokeWidth={1.7} />
                 <Fingerprint size={35} strokeWidth={1.7} />
               </div>
+
               <p className="text-sm leading-6 text-[#586b73]">
                 {t.passkeyDescription}
               </p>
@@ -309,11 +323,10 @@ export default function LoginPage() {
           <h2 className="text-[23px] font-bold text-[#173743]">
             {t.downloadTitle}
           </h2>
+
           <p className="mx-auto mt-2 max-w-[390px] text-sm leading-6 text-[#66777e]">
             {t.downloadDescription}
           </p>
-
-
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             {/* Apple App Store */}
@@ -349,19 +362,23 @@ export default function LoginPage() {
             </button>
           </div>
 
-
-
-
+          <p className="mt-4 text-xs text-[#718087]">
+            Mobile applications are not currently available for download.
+          </p>
         </section>
       </div>
 
       <footer className="border-t border-[#e1e8eb] bg-white px-4 py-7">
         <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-4 text-center text-xs text-[#718087] sm:flex-row sm:px-4">
-          <span>© {new Date().getFullYear()} Northstar Banking</span>
+          <span>
+            © {new Date().getFullYear()} Northstar Banking
+          </span>
+
           <div className="flex items-center gap-2">
             <ShieldCheck size={16} className="text-[#006b7d]" />
             {t.secureBanking}
           </div>
+
           <div className="flex items-center gap-4">
             <span>{t.privacy}</span>
             <span>{t.terms}</span>
@@ -372,13 +389,15 @@ export default function LoginPage() {
 
       {(storeDialogOpen || passkeyDialogOpen) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#001d29]/65 p-4">
-          <div role="dialog" aria-modal="true" className="relative w-full max-w-[420px] rounded-[24px] bg-white p-7 text-center shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="login-dialog-title"
+            className="relative w-full max-w-[420px] rounded-[24px] bg-white p-7 text-center shadow-2xl"
+          >
             <button
               type="button"
-              onClick={() => {
-                setStoreDialogOpen(false);
-                setPasskeyDialogOpen(false);
-              }}
+              onClick={closeDialog}
               aria-label="Close dialog"
               className="absolute right-4 top-4 rounded-full p-2 text-[#718087] hover:bg-[#eef4f6]"
             >
@@ -386,23 +405,31 @@ export default function LoginPage() {
             </button>
 
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e9f3f6] text-[#006b7d]">
-              {storeDialogOpen ? <Globe2 size={30} /> : <LockKeyhole size={30} />}
+              {storeDialogOpen ? (
+                <Globe2 size={30} />
+              ) : (
+                <LockKeyhole size={30} />
+              )}
             </div>
 
-            <h2 className="mt-5 text-xl font-bold text-[#173743]">
-              {storeDialogOpen ? t.unavailableTitle : t.passkeyTitle}
+            <h2
+              id="login-dialog-title"
+              className="mt-5 text-xl font-bold text-[#173743]"
+            >
+              {storeDialogOpen
+                ? t.unavailableTitle
+                : t.passkeyTitle}
             </h2>
 
             <p className="mt-3 text-sm leading-7 text-[#66777e]">
-              {storeDialogOpen ? t.unavailableDescription : t.comingSoon}
+              {storeDialogOpen
+                ? t.unavailableDescription
+                : t.comingSoon}
             </p>
 
             <button
               type="button"
-              onClick={() => {
-                setStoreDialogOpen(false);
-                setPasskeyDialogOpen(false);
-              }}
+              onClick={closeDialog}
               className="mt-7 h-12 w-full rounded-xl bg-[#003b4d] font-bold text-white hover:bg-[#002c3a]"
             >
               {t.gotIt}
