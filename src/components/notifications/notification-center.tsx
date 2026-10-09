@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -13,11 +14,15 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
-  PointerEvent as ReactPointerEvent,
-  useEffect,
+  type PointerEvent as ReactPointerEvent,
   useRef,
   useState,
 } from "react";
+
+import {
+  useLanguage,
+  type Language,
+} from "@/contexts/language-context";
 
 import {
   deleteNotification,
@@ -48,9 +53,117 @@ const MAX_SWIPE = 104;
 const DELETE_THRESHOLD = 78;
 const DIRECTION_LOCK_DISTANCE = 8;
 
-function getNotificationIcon(
-  type: NotificationType
-) {
+const locales: Record<Language, string> = {
+  en: "en-US",
+  fr: "fr-FR",
+  es: "es-ES",
+  de: "de-DE",
+  pt: "pt-PT",
+};
+
+const notificationTranslations = {
+  en: {
+    notifications: "Notifications",
+    markAllRead: "Mark all read",
+    markRead: "Mark read",
+    delete: "Delete",
+    deleteNotification: "Delete notification",
+    swipeHint: "Swipe a notification left to delete it.",
+    allCaughtUp: "You're all caught up.",
+    emptyDescription:
+      "Important account and security updates will appear here.",
+    unreadSingle: "unread notification",
+    unreadPlural: "unread notifications",
+    justNow: "Just now",
+    yesterday: "Yesterday",
+    minutesAgo: (n: number) => `${n}m ago`,
+    hoursAgo: (n: number) => `${n}h ago`,
+    daysAgo: (n: number) => `${n}d ago`,
+    actionFailed: "Something went wrong. Please try again.",
+  },
+  fr: {
+    notifications: "Notifications",
+    markAllRead: "Tout marquer comme lu",
+    markRead: "Marquer comme lu",
+    delete: "Supprimer",
+    deleteNotification: "Supprimer la notification",
+    swipeHint:
+      "Faites glisser une notification vers la gauche pour la supprimer.",
+    allCaughtUp: "Vous êtes à jour.",
+    emptyDescription:
+      "Les mises à jour importantes de votre compte et de sécurité apparaîtront ici.",
+    unreadSingle: "notification non lue",
+    unreadPlural: "notifications non lues",
+    justNow: "À l'instant",
+    yesterday: "Hier",
+    minutesAgo: (n: number) => `Il y a ${n} min`,
+    hoursAgo: (n: number) => `Il y a ${n} h`,
+    daysAgo: (n: number) => `Il y a ${n} j`,
+    actionFailed: "Une erreur est survenue. Veuillez réessayer.",
+  },
+  es: {
+    notifications: "Notificaciones",
+    markAllRead: "Marcar todas como leídas",
+    markRead: "Marcar como leída",
+    delete: "Eliminar",
+    deleteNotification: "Eliminar notificación",
+    swipeHint:
+      "Desliza una notificación hacia la izquierda para eliminarla.",
+    allCaughtUp: "Estás al día.",
+    emptyDescription:
+      "Las actualizaciones importantes de tu cuenta y seguridad aparecerán aquí.",
+    unreadSingle: "notificación sin leer",
+    unreadPlural: "notificaciones sin leer",
+    justNow: "Ahora mismo",
+    yesterday: "Ayer",
+    minutesAgo: (n: number) => `Hace ${n} min`,
+    hoursAgo: (n: number) => `Hace ${n} h`,
+    daysAgo: (n: number) => `Hace ${n} d`,
+    actionFailed: "Algo salió mal. Inténtalo de nuevo.",
+  },
+  de: {
+    notifications: "Benachrichtigungen",
+    markAllRead: "Alle als gelesen markieren",
+    markRead: "Als gelesen markieren",
+    delete: "Löschen",
+    deleteNotification: "Benachrichtigung löschen",
+    swipeHint:
+      "Wischen Sie eine Benachrichtigung nach links, um sie zu löschen.",
+    allCaughtUp: "Sie sind auf dem neuesten Stand.",
+    emptyDescription:
+      "Wichtige Konto- und Sicherheitsupdates erscheinen hier.",
+    unreadSingle: "ungelesene Benachrichtigung",
+    unreadPlural: "ungelesene Benachrichtigungen",
+    justNow: "Gerade eben",
+    yesterday: "Gestern",
+    minutesAgo: (n: number) => `Vor ${n} Min.`,
+    hoursAgo: (n: number) => `Vor ${n} Std.`,
+    daysAgo: (n: number) => `Vor ${n} Tagen`,
+    actionFailed: "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+  },
+  pt: {
+    notifications: "Notificações",
+    markAllRead: "Marcar todas como lidas",
+    markRead: "Marcar como lida",
+    delete: "Eliminar",
+    deleteNotification: "Eliminar notificação",
+    swipeHint:
+      "Deslize uma notificação para a esquerda para a eliminar.",
+    allCaughtUp: "Está tudo em dia.",
+    emptyDescription:
+      "As atualizações importantes da conta e de segurança aparecerão aqui.",
+    unreadSingle: "notificação não lida",
+    unreadPlural: "notificações não lidas",
+    justNow: "Agora mesmo",
+    yesterday: "Ontem",
+    minutesAgo: (n: number) => `Há ${n} min`,
+    hoursAgo: (n: number) => `Há ${n} h`,
+    daysAgo: (n: number) => `Há ${n} dias`,
+    actionFailed: "Ocorreu um erro. Tente novamente.",
+  },
+};
+
+function getNotificationIcon(type: NotificationType) {
   switch (type) {
     case "SUCCESS":
       return (
@@ -86,9 +199,7 @@ function getNotificationIcon(
   }
 }
 
-function getIconBackground(
-  type: NotificationType
-) {
+function getIconBackground(type: NotificationType) {
   switch (type) {
     case "SUCCESS":
       return "bg-emerald-50";
@@ -105,48 +216,51 @@ function getIconBackground(
 }
 
 function formatNotificationDate(
-  value: string
+  value: string,
+  language: Language,
+  now: number
 ) {
   const date = new Date(value);
-  const now = new Date();
 
-  const difference =
-    now.getTime() - date.getTime();
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
 
-  const minutes = Math.floor(
-    difference / 60000
+  const t = notificationTranslations[language];
+
+  const difference = Math.max(
+    0,
+    now - date.getTime()
   );
 
+  const minutes = Math.floor(difference / 60000);
+
   if (minutes < 1) {
-    return "Just now";
+    return t.justNow;
   }
 
   if (minutes < 60) {
-    return `${minutes}m ago`;
+    return t.minutesAgo(minutes);
   }
 
-  const hours = Math.floor(
-    minutes / 60
-  );
+  const hours = Math.floor(minutes / 60);
 
   if (hours < 24) {
-    return `${hours}h ago`;
+    return t.hoursAgo(hours);
   }
 
-  const days = Math.floor(
-    hours / 24
-  );
+  const days = Math.floor(hours / 24);
 
   if (days === 1) {
-    return "Yesterday";
+    return t.yesterday;
   }
 
   if (days < 7) {
-    return `${days}d ago`;
+    return t.daysAgo(days);
   }
 
   return new Intl.DateTimeFormat(
-    "en-US",
+    locales[language],
     {
       month: "short",
       day: "numeric",
@@ -165,6 +279,8 @@ interface SwipeableNotificationProps {
   isLast: boolean;
   loadingId: string | null;
   deletingId: string | null;
+  now: number;
+  language: Language;
   onMarkRead: (
     notificationId: string
   ) => Promise<void>;
@@ -178,29 +294,22 @@ function SwipeableNotification({
   isLast,
   loadingId,
   deletingId,
+  now,
+  language,
   onMarkRead,
   onDelete,
 }: SwipeableNotificationProps) {
-  const [offsetX, setOffsetX] =
-    useState(0);
+  const t = notificationTranslations[language];
 
-  const [dragging, setDragging] =
-    useState(false);
-
-  const [removing, setRemoving] =
-    useState(false);
+  const [offsetX, setOffsetX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const startXRef = useRef(0);
   const startYRef = useRef(0);
-
-  const startOffsetRef =
-    useRef(0);
-
-  const directionRef =
-    useRef<SwipeDirection>(null);
-
-  const pointerIdRef =
-    useRef<number | null>(null);
+  const startOffsetRef = useRef(0);
+  const directionRef = useRef<SwipeDirection>(null);
+  const pointerIdRef = useRef<number | null>(null);
 
   const isDeleting =
     deletingId === notification.id;
@@ -222,19 +331,12 @@ function SwipeableNotification({
       return;
     }
 
-    startXRef.current =
-      event.clientX;
-
-    startYRef.current =
-      event.clientY;
-
-    startOffsetRef.current =
-      offsetX;
+    startXRef.current = event.clientX;
+    startYRef.current = event.clientY;
+    startOffsetRef.current = offsetX;
 
     directionRef.current = null;
-
-    pointerIdRef.current =
-      event.pointerId;
+    pointerIdRef.current = event.pointerId;
 
     setDragging(true);
   }
@@ -244,36 +346,29 @@ function SwipeableNotification({
   ) {
     if (
       !dragging ||
-      pointerIdRef.current !==
-        event.pointerId
+      pointerIdRef.current !== event.pointerId
     ) {
       return;
     }
 
     const deltaX =
-      event.clientX -
-      startXRef.current;
+      event.clientX - startXRef.current;
 
     const deltaY =
-      event.clientY -
-      startYRef.current;
+      event.clientY - startYRef.current;
 
     if (!directionRef.current) {
       if (
         Math.abs(deltaX) <
-          DIRECTION_LOCK_DISTANCE &&
+        DIRECTION_LOCK_DISTANCE &&
         Math.abs(deltaY) <
-          DIRECTION_LOCK_DISTANCE
+        DIRECTION_LOCK_DISTANCE
       ) {
         return;
       }
 
-      if (
-        Math.abs(deltaY) >
-        Math.abs(deltaX)
-      ) {
-        directionRef.current =
-          "vertical";
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        directionRef.current = "vertical";
 
         setDragging(false);
         setOffsetX(0);
@@ -281,35 +376,24 @@ function SwipeableNotification({
         return;
       }
 
-      directionRef.current =
-        "horizontal";
+      directionRef.current = "horizontal";
     }
 
     if (
-      directionRef.current !==
-      "horizontal"
+      directionRef.current !== "horizontal"
     ) {
       return;
     }
 
-    /*
-     * Prevent the browser from treating
-     * a horizontal drag as another gesture.
-     */
     event.preventDefault();
 
     const nextOffset =
-      startOffsetRef.current +
-      deltaX;
+      startOffsetRef.current + deltaX;
 
-    /*
-     * We only allow swiping left.
-     */
-    const clampedOffset =
-      Math.max(
-        -MAX_SWIPE,
-        Math.min(0, nextOffset)
-      );
+    const clampedOffset = Math.max(
+      -MAX_SWIPE,
+      Math.min(0, nextOffset)
+    );
 
     setOffsetX(clampedOffset);
   }
@@ -318,8 +402,7 @@ function SwipeableNotification({
     event: ReactPointerEvent<HTMLElement>
   ) {
     if (
-      pointerIdRef.current !==
-      event.pointerId
+      pointerIdRef.current !== event.pointerId
     ) {
       return;
     }
@@ -327,8 +410,7 @@ function SwipeableNotification({
     pointerIdRef.current = null;
 
     const wasHorizontal =
-      directionRef.current ===
-      "horizontal";
+      directionRef.current === "horizontal";
 
     directionRef.current = null;
     setDragging(false);
@@ -339,24 +421,18 @@ function SwipeableNotification({
     }
 
     if (
-      Math.abs(offsetX) <
-      DELETE_THRESHOLD
+      Math.abs(offsetX) < DELETE_THRESHOLD
     ) {
       setOffsetX(0);
       return;
     }
 
-    /*
-     * Move the notification fully away
-     * before deleting it from the server.
-     */
     setRemoving(true);
     setOffsetX(-500);
 
-    const success =
-      await onDelete(
-        notification.id
-      );
+    const success = await onDelete(
+      notification.id
+    );
 
     if (!success) {
       setRemoving(false);
@@ -380,10 +456,9 @@ function SwipeableNotification({
     setRemoving(true);
     setOffsetX(-500);
 
-    const success =
-      await onDelete(
-        notification.id
-      );
+    const success = await onDelete(
+      notification.id
+    );
 
     if (!success) {
       setRemoving(false);
@@ -393,20 +468,14 @@ function SwipeableNotification({
 
   return (
     <div
-      className={`relative overflow-hidden bg-red-600 ${
-        !isLast
-          ? "border-b border-[#e3e9eb]"
-          : ""
-      }`}
+      className={`relative overflow-hidden bg-red-600 ${!isLast ? "border-b border-[#e3e9eb]" : ""}`}
     >
       <div className="absolute inset-y-0 right-0 flex w-[104px] items-center justify-center bg-red-600">
         <button
           type="button"
           disabled={isDeleting}
-          onClick={
-            handleDeleteButton
-          }
-          aria-label="Delete notification"
+          onClick={handleDeleteButton}
+          aria-label={t.deleteNotification}
           className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-white disabled:opacity-60"
         >
           {isDeleting ? (
@@ -419,61 +488,42 @@ function SwipeableNotification({
           )}
 
           <span className="text-xs font-bold">
-            Delete
+            {t.delete}
           </span>
         </button>
       </div>
 
       <article
-        onPointerDown={
-          handlePointerDown
-        }
-        onPointerMove={
-          handlePointerMove
-        }
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={finishSwipe}
-        onPointerCancel={
-          handlePointerCancel
-        }
+        onPointerCancel={handlePointerCancel}
         style={{
           transform: `translateX(${offsetX}px)`,
           touchAction: "pan-y",
-          transition:
-            dragging
-              ? "none"
-              : removing
-                ? "transform 220ms ease-in"
-                : "transform 220ms ease-out",
+          transition: dragging
+            ? "none"
+            : removing
+              ? "transform 220ms ease-in"
+              : "transform 220ms ease-out",
         }}
-        className={`relative flex select-none gap-4 p-5 ${
-          notification.read
-            ? "bg-white"
-            : "bg-[#f5fafb]"
-        }`}
+        className={`relative flex select-none gap-4 p-5 ${notification.read ? "bg-white" : "bg-[#f5fafb]"}`}
       >
         {!notification.read && (
           <span className="absolute left-0 top-0 h-full w-1 bg-[#003b4d]" />
         )}
 
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${getIconBackground(
-            notification.type
-          )}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${getIconBackground(notification.type)}`}
         >
-          {getNotificationIcon(
-            notification.type
-          )}
+          {getNotificationIcon(notification.type)}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p
-                className={`text-[16px] text-[#173743] ${
-                  notification.read
-                    ? "font-semibold"
-                    : "font-bold"
-                }`}
+                className={`text-[16px] text-[#173743] ${notification.read ? "font-semibold" : "font-bold"}`}
               >
                 {notification.title}
               </p>
@@ -491,7 +541,9 @@ function SwipeableNotification({
           <div className="mt-3 flex items-center justify-between gap-4">
             <span className="text-xs font-medium text-[#8a979c]">
               {formatNotificationDate(
-                notification.createdAt
+                notification.createdAt,
+                language,
+                now
               )}
             </span>
 
@@ -499,26 +551,20 @@ function SwipeableNotification({
               <button
                 type="button"
                 disabled={
-                  loadingId ===
-                    notification.id ||
+                  loadingId === notification.id ||
                   isDeleting
                 }
-                onPointerDown={(
-                  event
-                ) => {
+                onPointerDown={(event) => {
                   event.stopPropagation();
                 }}
                 onClick={(event) => {
                   event.stopPropagation();
 
-                  void onMarkRead(
-                    notification.id
-                  );
+                  void onMarkRead(notification.id);
                 }}
                 className="flex items-center gap-1.5 text-xs font-bold text-[#00627a] disabled:opacity-50"
               >
-                {loadingId ===
-                notification.id ? (
+                {loadingId === notification.id ? (
                   <Loader2
                     size={14}
                     className="animate-spin"
@@ -527,7 +573,7 @@ function SwipeableNotification({
                   <Check size={14} />
                 )}
 
-                Mark read
+                {t.markRead}
               </button>
             )}
           </div>
@@ -540,17 +586,25 @@ function SwipeableNotification({
 export function NotificationCenter({
   notifications,
 }: NotificationCenterProps) {
+  return (
+    <NotificationCenterContent
+      key={JSON.stringify(notifications)}
+      notifications={notifications}
+    />
+  );
+}
+
+function NotificationCenterContent({
+  notifications,
+}: NotificationCenterProps) {
   const router = useRouter();
 
-  /*
-   * Keep a local copy so a deleted
-   * notification disappears immediately
-   * instead of waiting for router.refresh().
-   */
+
+  const { language } = useLanguage();
+  const t = notificationTranslations[language];
+
   const [items, setItems] =
-    useState<NotificationItem[]>(
-      notifications
-    );
+    useState<NotificationItem[]>(notifications);
 
   const [loadingId, setLoadingId] =
     useState<string | null>(null);
@@ -558,24 +612,18 @@ export function NotificationCenter({
   const [deletingId, setDeletingId] =
     useState<string | null>(null);
 
-  const [
-    markingAll,
-    setMarkingAll,
-  ] = useState(false);
+  const [markingAll, setMarkingAll] =
+    useState(false);
 
-  /*
-   * Keep local state synchronized when
-   * server props change after refresh.
-   */
-  useEffect(() => {
-    setItems(notifications);
-  }, [notifications]);
+  const [actionError, setActionError] =
+    useState(false);
 
-  const unreadCount =
-    items.filter(
-      (notification) =>
-        !notification.read
-    ).length;
+  const [now] = useState(() => Date.now());
+
+
+  const unreadCount = items.filter(
+    (notification) => !notification.read
+  ).length;
 
   async function handleMarkRead(
     notificationId: string
@@ -585,58 +633,65 @@ export function NotificationCenter({
     }
 
     setLoadingId(notificationId);
+    setActionError(false);
 
-    const result =
-      await markNotificationRead(
-        notificationId
-      );
+    try {
+      const result =
+        await markNotificationRead(notificationId);
 
-    setLoadingId(null);
+      if (!result.success) {
+        setActionError(true);
+        return;
+      }
 
-    if (result.success) {
       setItems((current) =>
-        current.map(
-          (notification) =>
-            notification.id ===
-            notificationId
-              ? {
-                  ...notification,
-                  read: true,
-                }
-              : notification
+        current.map((notification) =>
+          notification.id === notificationId
+            ? {
+              ...notification,
+              read: true,
+            }
+            : notification
         )
       );
 
       router.refresh();
+    } catch {
+      setActionError(true);
+    } finally {
+      setLoadingId(null);
     }
   }
 
   async function handleMarkAllRead() {
-    if (
-      unreadCount === 0 ||
-      markingAll
-    ) {
+    if (unreadCount === 0 || markingAll) {
       return;
     }
 
     setMarkingAll(true);
+    setActionError(false);
 
-    const result =
-      await markAllNotificationsRead();
+    try {
+      const result =
+        await markAllNotificationsRead();
 
-    setMarkingAll(false);
+      if (!result.success) {
+        setActionError(true);
+        return;
+      }
 
-    if (result.success) {
       setItems((current) =>
-        current.map(
-          (notification) => ({
-            ...notification,
-            read: true,
-          })
-        )
+        current.map((notification) => ({
+          ...notification,
+          read: true,
+        }))
       );
 
       router.refresh();
+    } catch {
+      setActionError(true);
+    } finally {
+      setMarkingAll(false);
     }
   }
 
@@ -648,78 +703,95 @@ export function NotificationCenter({
     }
 
     setDeletingId(notificationId);
+    setActionError(false);
 
-    const result =
-      await deleteNotification(
-        notificationId
+    try {
+      const result =
+        await deleteNotification(notificationId);
+
+      if (!result.success) {
+        setActionError(true);
+        return false;
+      }
+
+      setItems((current) =>
+        current.filter(
+          (notification) =>
+            notification.id !== notificationId
+        )
       );
 
-    setDeletingId(null);
+      router.refresh();
 
-    if (!result.success) {
+      return true;
+    } catch {
+      setActionError(true);
       return false;
+    } finally {
+      setDeletingId(null);
     }
-
-    setItems((current) =>
-      current.filter(
-        (notification) =>
-          notification.id !==
-          notificationId
-      )
-    );
-
-    router.refresh();
-
-    return true;
   }
+
+  const errorMessage = actionError ? (
+    <p
+      role="alert"
+      className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700"
+    >
+      {t.actionFailed}
+    </p>
+  ) : null;
 
   if (items.length === 0) {
     return (
-      <section className="bank-card mt-6 flex min-h-[250px] flex-col items-center justify-center rounded-[24px] px-5 text-center">
-        <Bell
-          size={38}
-          strokeWidth={1.6}
-          className="text-[#8b989d]"
-        />
+      <>
+        {errorMessage}
 
-        <p className="mt-5 text-[18px] font-semibold text-[#52666e]">
-          You&apos;re all caught up.
-        </p>
+        <section className="bank-card mt-6 flex min-h-[250px] flex-col items-center justify-center rounded-[24px] px-5 text-center">
+          <Bell
+            size={38}
+            strokeWidth={1.6}
+            className="text-[#8b989d]"
+          />
 
-        <p className="mt-2 max-w-[300px] text-sm leading-6 text-[#819096]">
-          Important account and security
-          updates will appear here.
-        </p>
-      </section>
+          <p className="mt-5 text-[18px] font-semibold text-[#52666e]">
+            {t.allCaughtUp}
+          </p>
+
+          <p className="mt-2 max-w-[300px] text-sm leading-6 text-[#819096]">
+            {t.emptyDescription}
+          </p>
+        </section>
+      </>
     );
   }
 
   return (
     <>
+      {errorMessage}
+
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[30px] font-bold text-[#173743]">
-            Notifications
+            {t.notifications}
           </h1>
 
           <p className="mt-1 text-sm text-[#718087]">
             {unreadCount > 0
-              ? `${unreadCount} unread ${
-                  unreadCount === 1
-                    ? "notification"
-                    : "notifications"
-                }`
-              : "You're all caught up."}
+              ? `${unreadCount} ${unreadCount === 1
+                ? t.unreadSingle
+                : t.unreadPlural
+              }`
+              : t.allCaughtUp}
           </p>
         </div>
 
         <button
           type="button"
           disabled={
-            markingAll ||
-            unreadCount === 0
+            markingAll || unreadCount === 0
           }
           onClick={handleMarkAllRead}
+          aria-label={t.markAllRead}
           className="flex shrink-0 items-center gap-2 rounded-full border border-[#d5dfe3] bg-white px-4 py-3 text-sm font-semibold text-[#173743] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {markingAll ? (
@@ -732,37 +804,29 @@ export function NotificationCenter({
           )}
 
           <span className="hidden sm:inline">
-            Mark all read
+            {t.markAllRead}
           </span>
         </button>
       </div>
 
       <p className="mt-4 text-xs font-medium text-[#8a979c]">
-        Swipe a notification left to
-        delete it.
+        {t.swipeHint}
       </p>
 
       <section className="bank-card mt-3 overflow-hidden rounded-[24px]">
-        {items.map(
-          (notification, index) => (
-            <SwipeableNotification
-              key={notification.id}
-              notification={
-                notification
-              }
-              isLast={
-                index ===
-                items.length - 1
-              }
-              loadingId={loadingId}
-              deletingId={deletingId}
-              onMarkRead={
-                handleMarkRead
-              }
-              onDelete={handleDelete}
-            />
-          )
-        )}
+        {items.map((notification, index) => (
+          <SwipeableNotification
+            key={notification.id}
+            notification={notification}
+            isLast={index === items.length - 1}
+            loadingId={loadingId}
+            deletingId={deletingId}
+            now={now}
+            language={language}
+            onMarkRead={handleMarkRead}
+            onDelete={handleDelete}
+          />
+        ))}
       </section>
     </>
   );
