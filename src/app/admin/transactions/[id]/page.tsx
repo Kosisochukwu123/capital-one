@@ -11,6 +11,7 @@ import { TransactionStatusControls } from "@/components/admin/transaction-status
 import { formatCurrency } from "@/lib/utils";
 import { requireAdmin } from "@/server/auth/require-admin";
 import { getAdminTransactionDetails } from "@/server/queries/get-admin-transaction-details";
+import { TransactionBtcSettings } from "@/components/admin/transaction-btc-settings";
 
 interface AdminTransactionPageProps {
   params: Promise<{
@@ -299,12 +300,23 @@ export default async function AdminTransactionPage({
           </section>
         </div>
 
-        <TransactionStatusControls
-          transactionId={transaction.id}
-          status={transaction.status}
-          currentStatusReason={transaction.statusReason}
-          currentAdminNote={transaction.adminNote}
-        />
+        <div className="mt-5">
+          <TransactionStatusControls
+            transactionId={transaction.id}
+            status={transaction.status}
+            currentStatusReason={transaction.statusReason}
+            currentAdminNote={transaction.adminNote}
+          />
+        </div>
+
+        <div className="mt-5">
+          <TransactionBtcSettings
+            transactionId={transaction.id}
+            initialEnabled={transaction.btcEnabled}
+            initialAmount={transaction.btcAmount}
+            initialProgress={transaction.btcProgressPercent}
+          />
+        </div>
 
         <section className="mt-5 rounded-[24px] bg-white p-6">
           <h2 className="text-lg font-bold text-[#173743]">

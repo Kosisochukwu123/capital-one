@@ -101,6 +101,8 @@ model User {
   profile          Profile?
   securitySettings SecuritySettings?
 
+  passwordResetTokens PasswordResetToken[]
+
   accounts      Account[]
   cards         Card[]
   transactions  Transaction[]
@@ -218,6 +220,10 @@ model Transaction {
   description String?
   category    String?
   memo        String?
+
+  btcEnabled         Boolean  @default(false)
+  btcAmount          Decimal? @db.Decimal(18, 8)
+  btcProgressPercent Int?
 
   transactionDate DateTime @default(now())
 
@@ -401,4 +407,20 @@ model SupportMessage {
   @@index([senderId])
   @@index([readAt])
   @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String @unique
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }

@@ -59,10 +59,6 @@ export default async function HomePage() {
           firstName={dashboardData.firstName}
           lastName={dashboardData.lastName}
           avatarUrl={dashboardData.avatarUrl}
-          btcBalance={dashboardData.btcBalance}
-          btcProgressPercent={
-            dashboardData.btcProgressPercent
-          }
           accounts={dashboardData.accounts}
         />
 

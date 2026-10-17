@@ -88,9 +88,18 @@ export function LoginForm({ language = "en" }: LoginFormProps) {
           <label htmlFor="password" className="text-[15px] font-bold text-[#17242b]">
             {t.password}
           </label>
-          <span className="text-xs font-semibold text-[#00799a]">
+
+          <Link
+            href="/forgot-password"
+            onClick={(event) => {
+              event.preventDefault();
+              navigateWithLoader("/forgot-password");
+            }}
+            className="text-xs font-semibold text-[#00799a] hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#00799a]"
+          >
             {t.forgotPassword}
-          </span>
+          </Link>
+
         </div>
 
         <div className="relative">

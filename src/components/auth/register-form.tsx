@@ -349,7 +349,24 @@ export function RegisterForm() {
         />
 
         <span className="text-sm leading-6 text-[#5f7077]">
-          {t.acceptedTerms}
+          {t.acceptedTerms}{" "}
+          <Link
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#006b7d] underline underline-offset-2"
+          >
+            Terms and Conditions
+          </Link>
+          {" · "}
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#006b7d] underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
         </span>
       </label>
 

@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/db";
 
 export async function getUserTransactionDetails(
@@ -27,6 +28,10 @@ export async function getUserTransactionDetails(
       completedAt: true,
       failedAt: true,
 
+      btcEnabled: true,
+      btcAmount: true,
+      btcProgressPercent: true,
+
       account: {
         select: {
           id: true,
@@ -42,9 +47,10 @@ export async function getUserTransactionDetails(
     return null;
   }
 
-  const transfer = await db.transfer.findUnique({
+  const transfer = await db.transfer.findFirst({
     where: {
       reference: transaction.reference,
+      userId,
     },
 
     select: {
@@ -74,6 +80,17 @@ export async function getUserTransactionDetails(
     updatedAt: transaction.updatedAt,
     completedAt: transaction.completedAt,
     failedAt: transaction.failedAt,
+
+    // Never expose disabled BTC values to customers.
+    btcEnabled: transaction.btcEnabled,
+    btcAmount:
+      transaction.btcEnabled && transaction.btcAmount !== null
+        ? transaction.btcAmount.toString()
+        : null,
+    btcProgressPercent:
+      transaction.btcEnabled
+        ? transaction.btcProgressPercent
+        : null,
 
     account: {
       id: transaction.account.id,

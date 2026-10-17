@@ -28,15 +28,12 @@ interface AccountSummaryProps {
   firstName: string;
   lastName: string;
   avatarUrl: string | null;
-  btcBalance: string;
-  btcProgressPercent: number;
   accounts: DashboardAccount[];
 }
 
 const summaryTranslations = {
   en: {
     hello: "Hello,",
-    btcBalance: "BTC Balance",
     yourAccounts: "Your accounts",
     activeAccount: "active account",
     activeAccounts: "active accounts",
@@ -49,7 +46,6 @@ const summaryTranslations = {
   },
   fr: {
     hello: "Bonjour,",
-    btcBalance: "Solde BTC",
     yourAccounts: "Vos comptes",
     activeAccount: "compte actif",
     activeAccounts: "comptes actifs",
@@ -62,7 +58,6 @@ const summaryTranslations = {
   },
   es: {
     hello: "Hola,",
-    btcBalance: "Saldo BTC",
     yourAccounts: "Tus cuentas",
     activeAccount: "cuenta activa",
     activeAccounts: "cuentas activas",
@@ -75,7 +70,6 @@ const summaryTranslations = {
   },
   de: {
     hello: "Hallo,",
-    btcBalance: "BTC-Guthaben",
     yourAccounts: "Ihre Konten",
     activeAccount: "aktives Konto",
     activeAccounts: "aktive Konten",
@@ -88,7 +82,6 @@ const summaryTranslations = {
   },
   pt: {
     hello: "Olá,",
-    btcBalance: "Saldo BTC",
     yourAccounts: "Suas contas",
     activeAccount: "conta ativa",
     activeAccounts: "contas ativas",
@@ -105,8 +98,6 @@ export function AccountSummary({
   firstName,
   lastName,
   avatarUrl,
-  btcBalance,
-  btcProgressPercent,
   accounts,
 }: AccountSummaryProps) {
   const { navigateWithLoader } = useAppLoader();
@@ -123,10 +114,7 @@ export function AccountSummary({
   const initials =
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
-  const safeBtcProgress = Math.min(
-    100,
-    Math.max(0, btcProgressPercent)
-  );
+
 
   return (
     <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#005f78] via-[#004b61] to-[#003545] text-white shadow-sm">
@@ -171,34 +159,6 @@ export function AccountSummary({
           <h2 className="mt-1 text-[32px] font-bold leading-none tracking-[-0.04em] sm:text-[42px]">
             {formatCurrency(totalBalance)}
           </h2>
-        </div>
-
-        {/* BTC balance */}
-        <div className="mt-5 rounded-[18px] border border-white/10 bg-white/[0.07] p-3.5 backdrop-blur-sm sm:mt-6 sm:p-4">
-          <div className="flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-white/60 sm:text-sm">
-                {st.btcBalance}
-              </p>
-
-              <p className="mt-1 truncate font-mono text-lg font-bold tracking-tight sm:text-xl">
-                {btcBalance} BTC
-              </p>
-            </div>
-
-            <span className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-white/85">
-              {safeBtcProgress}%
-            </span>
-          </div>
-
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15">
-            <div
-              className="h-full rounded-full bg-white transition-[width] duration-500"
-              style={{
-                width: `${safeBtcProgress}%`,
-              }}
-            />
-          </div>
         </div>
 
         {/* Accounts heading */}
